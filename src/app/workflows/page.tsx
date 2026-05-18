@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import Link from 'next/link'
 import type { WorkflowTemplate, WorkflowRun, WorkflowChainRun } from '@/types'
 
 const STATUS_DOT: Record<string, string> = {
@@ -129,11 +128,10 @@ export default function WorkflowsPage() {
 
   return (
     <div className="min-h-screen bg-[#0a0a0a]">
-      <header className="border-b border-[#1a1a1a] px-6 py-3 flex items-center gap-4">
-        <Link href="/dashboard" className="text-[#525252] hover:text-[#a3a3a3] text-sm transition-colors">← Dashboard</Link>
+      <header className="sticky top-0 z-10 border-b border-[#1a1a1a] bg-[#0a0a0a]/90 backdrop-blur-md px-6 h-14 flex items-center gap-3">
         <div>
           <h1 className="text-sm font-semibold text-[#e5e5e5]">Workflows</h1>
-          <p className="text-[10px] text-[#525252]">Automated operational tasks</p>
+          <p className="text-[10px] text-[#3a3a3a]">Automated operational tasks</p>
         </div>
       </header>
 

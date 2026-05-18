@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import Link from 'next/link'
 import type { Approval } from '@/types'
 
 const TYPE_LABELS: Record<string, string> = {
@@ -65,13 +64,10 @@ export default function ApprovalsPage() {
 
   return (
     <div className="min-h-screen bg-[#0a0a0a]">
-      <header className="border-b border-[#1a1a1a] px-6 py-4 flex items-center gap-4">
-        <Link href="/dashboard" className="text-[#525252] hover:text-[#a3a3a3] transition-colors text-sm">
-          ← Dashboard
-        </Link>
+      <header className="sticky top-0 z-10 border-b border-[#1a1a1a] bg-[#0a0a0a]/90 backdrop-blur-md px-6 h-14 flex items-center gap-3">
         <div className="flex-1">
           <h1 className="text-sm font-semibold text-[#e5e5e5]">Approvals</h1>
-          <p className="text-xs text-[#525252]">Nothing executes without your approval</p>
+          <p className="text-[10px] text-[#3a3a3a]">Nothing executes without your approval</p>
         </div>
         <button
           onClick={handleCreateTest}

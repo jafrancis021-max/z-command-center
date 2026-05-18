@@ -32,116 +32,140 @@ export default async function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-[#0a0a0a]">
-      {/* Header */}
-      <header className="border-b border-[#1a1a1a] px-6 py-3 flex items-center justify-between gap-4">
-        <div className="flex items-center gap-3 shrink-0">
-          <div className="w-7 h-7 rounded-lg bg-[#f59e0b] flex items-center justify-center text-black font-bold text-sm">
-            Z
-          </div>
-          <div>
-            <h1 className="text-sm font-semibold text-[#e5e5e5] leading-none">Z Command Center</h1>
-            <p className="text-[10px] text-[#525252]">Operational Intelligence</p>
-          </div>
-        </div>
 
-        {/* Global search */}
-        <div className="flex-1 flex justify-center max-w-md">
+      {/* ── Top header bar ─────────────────────────────────────────────────── */}
+      <header className="sticky top-0 z-10 border-b border-[#1a1a1a] bg-[#0a0a0a]/90 backdrop-blur-md px-6 h-14 flex items-center gap-4">
+        <div className="flex-1 flex justify-start max-w-sm">
           <GlobalSearch />
         </div>
 
-        <div className="flex items-center gap-2 shrink-0">
-          <Link
-            href="/workflows"
-            className="text-xs border border-[#2a2a2a] text-[#a3a3a3] px-3 py-1.5 rounded-lg hover:border-[#f59e0b]/40 hover:text-[#f59e0b] transition-colors"
-          >
-            Workflows
-          </Link>
-          <Link
-            href="/inbox"
-            className="text-xs border border-[#2a2a2a] text-[#a3a3a3] px-3 py-1.5 rounded-lg hover:border-[#f59e0b]/40 hover:text-[#f59e0b] transition-colors"
-          >
-            Inbox
-          </Link>
-          <Link
-            href="/approvals"
-            className="relative text-xs border border-[#2a2a2a] text-[#a3a3a3] px-3 py-1.5 rounded-lg hover:border-[#f59e0b]/40 hover:text-[#f59e0b] transition-colors"
-          >
-            Approvals
-            {pendingApprovals > 0 && (
-              <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-[#f59e0b] text-black text-[9px] font-bold rounded-full flex items-center justify-center">
-                {pendingApprovals}
-              </span>
-            )}
-          </Link>
-          <span className="text-xs text-[#f59e0b] bg-[#f59e0b]/10 border border-[#f59e0b]/20 px-2 py-0.5 rounded-full">
-            v1.5
-          </span>
+        <div className="flex items-center gap-2 shrink-0 ml-auto">
+          {pendingApprovals > 0 && (
+            <Link
+              href="/approvals"
+              className="flex items-center gap-1.5 text-xs bg-[#f59e0b]/10 border border-[#f59e0b]/25 text-[#f59e0b] px-2.5 py-1 rounded-lg hover:bg-[#f59e0b]/15 transition-colors"
+            >
+              <span className="w-1.5 h-1.5 rounded-full bg-[#f59e0b] animate-pulse" />
+              {pendingApprovals} pending
+            </Link>
+          )}
+          <span className="text-[10px] text-[#3a3a3a] bg-[#111] border border-[#1a1a1a] px-2 py-1 rounded-md tabular-nums">v1.5</span>
         </div>
       </header>
 
       <main className="px-6 py-6 max-w-6xl mx-auto space-y-8">
         {error && (
-          <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-sm">
-            ⚠️ {error} — Check your Supabase environment variables.
+          <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-sm">
+            ⚠ {error} — Check your Supabase environment variables.
           </div>
         )}
 
-        {/* TODAY'S PRIORITIES — operational intelligence widget */}
+        {/* ── Operational intelligence ──────────────────────────────────── */}
         {!error && (
           <section>
             <TodaysPriorities />
           </section>
         )}
 
-        {/* Stats row */}
+        {/* ── Stats grid ────────────────────────────────────────────────── */}
         {!error && (
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <div className="bg-[#111] border border-[#1e1e1e] rounded-xl p-4">
-              <p className="text-2xl font-semibold text-[#e5e5e5]">{data.length}</p>
-              <p className="text-xs text-[#525252] mt-1">Total Projects</p>
+
+            {/* Total projects */}
+            <div className="bg-[#111] border border-[#1e1e1e] rounded-xl p-4 hover:border-[#2a2a2a] transition-colors">
+              <div className="flex items-start justify-between mb-3">
+                <div className="w-8 h-8 rounded-lg bg-[#1a1a1a] border border-[#222] flex items-center justify-center">
+                  <svg className="w-4 h-4 text-[#525252]" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5">
+                    <rect x="2.5" y="2.5" width="6" height="6" rx="1" />
+                    <rect x="11.5" y="2.5" width="6" height="6" rx="1" />
+                    <rect x="2.5" y="11.5" width="6" height="6" rx="1" />
+                    <rect x="11.5" y="11.5" width="6" height="6" rx="1" />
+                  </svg>
+                </div>
+                <span className="text-[9px] text-[#3a3a3a] bg-[#161616] px-1.5 py-0.5 rounded font-mono">all</span>
+              </div>
+              <p className="text-3xl font-bold text-[#e5e5e5] leading-none tabular-nums">{data.length}</p>
+              <p className="text-xs text-[#525252] mt-2">Total Projects</p>
             </div>
-            <div className="bg-[#111] border border-[#1e1e1e] rounded-xl p-4">
-              <p className="text-2xl font-semibold text-[#22c55e]">{activeProjects}</p>
-              <p className="text-xs text-[#525252] mt-1">Active</p>
+
+            {/* Active */}
+            <div className="bg-[#111] border border-[#1e1e1e] rounded-xl p-4 hover:border-[#22c55e]/20 transition-colors">
+              <div className="flex items-start justify-between mb-3">
+                <div className="w-8 h-8 rounded-lg bg-[#22c55e]/10 border border-[#22c55e]/20 flex items-center justify-center">
+                  <span className="w-2 h-2 rounded-full bg-[#22c55e] animate-pulse" />
+                </div>
+                <span className="text-[9px] text-[#22c55e]/50 bg-[#22c55e]/5 border border-[#22c55e]/10 px-1.5 py-0.5 rounded">live</span>
+              </div>
+              <p className="text-3xl font-bold text-[#22c55e] leading-none tabular-nums">{activeProjects}</p>
+              <p className="text-xs text-[#525252] mt-2">Active</p>
             </div>
+
+            {/* Pending approvals */}
             <Link
               href="/approvals"
-              className="bg-[#111] border border-[#1e1e1e] rounded-xl p-4 hover:border-[#f59e0b]/30 transition-colors group"
+              className="bg-[#111] border border-[#1e1e1e] rounded-xl p-4 hover:border-[#f59e0b]/25 transition-colors group block"
             >
-              <p className={`text-2xl font-semibold ${pendingApprovals > 0 ? 'text-[#f59e0b]' : 'text-[#e5e5e5]'}`}>
+              <div className="flex items-start justify-between mb-3">
+                <div className={`w-8 h-8 rounded-lg flex items-center justify-center border ${
+                  pendingApprovals > 0
+                    ? 'bg-[#f59e0b]/10 border-[#f59e0b]/25'
+                    : 'bg-[#1a1a1a] border-[#222]'
+                }`}>
+                  <svg className={`w-4 h-4 ${pendingApprovals > 0 ? 'text-[#f59e0b]' : 'text-[#525252]'}`} viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5">
+                    <path d="M17 5L8 14l-4-4" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </div>
+                <span className="text-[9px] text-[#525252] group-hover:text-[#f59e0b] transition-colors">→</span>
+              </div>
+              <p className={`text-3xl font-bold leading-none tabular-nums ${pendingApprovals > 0 ? 'text-[#f59e0b]' : 'text-[#e5e5e5]'}`}>
                 {pendingApprovals}
               </p>
-              <p className="text-xs text-[#525252] mt-1 group-hover:text-[#a3a3a3] transition-colors">
-                Pending Approvals →
-              </p>
+              <p className="text-xs text-[#525252] mt-2 group-hover:text-[#a3a3a3] transition-colors">Pending Approvals</p>
             </Link>
-            <div className="bg-[#111] border border-[#1e1e1e] rounded-xl p-4">
-              <p className="text-2xl font-semibold text-[#737373]">{recentLogs.length}</p>
-              <p className="text-xs text-[#525252] mt-1">Recent Actions</p>
+
+            {/* Recent actions */}
+            <div className="bg-[#111] border border-[#1e1e1e] rounded-xl p-4 hover:border-[#2a2a2a] transition-colors">
+              <div className="flex items-start justify-between mb-3">
+                <div className="w-8 h-8 rounded-lg bg-[#1a1a1a] border border-[#222] flex items-center justify-center">
+                  <svg className="w-4 h-4 text-[#525252]" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5">
+                    <path d="M10 2v8l4 4" strokeLinecap="round" strokeLinejoin="round" />
+                    <circle cx="10" cy="10" r="8" />
+                  </svg>
+                </div>
+              </div>
+              <p className="text-3xl font-bold text-[#737373] leading-none tabular-nums">{recentLogs.length}</p>
+              <p className="text-xs text-[#525252] mt-2">Recent Actions</p>
             </div>
+
           </div>
         )}
 
-        {/* Cross-project intelligence */}
+        {/* ── Cross-project intelligence ────────────────────────────────── */}
         {!error && data.length > 1 && (
           <section>
             <CrossProjectIntelligence />
           </section>
         )}
 
-        {/* Projects */}
+        {/* ── Projects ─────────────────────────────────────────────────── */}
         <section>
           <div className="flex items-center justify-between mb-4">
-            <div>
+            <div className="flex items-center gap-2.5">
               <h2 className="text-sm font-semibold text-[#e5e5e5]">Projects</h2>
-              <p className="text-xs text-[#525252]">Active operational workspaces</p>
+              {data.length > 0 && (
+                <span className="text-[10px] text-[#525252] bg-[#1a1a1a] border border-[#222] px-2 py-0.5 rounded-full tabular-nums">
+                  {data.length}
+                </span>
+              )}
             </div>
+            <p className="text-xs text-[#525252]">Active operational workspaces</p>
           </div>
 
           {!error && data.length === 0 && (
-            <div className="text-center py-20 text-[#525252]">
-              <div className="text-4xl mb-3">∅</div>
-              <p className="text-sm">No projects found. Run the SQL schema in Supabase to seed initial projects.</p>
+            <div className="text-center py-20 text-[#525252] bg-[#111] border border-[#1a1a1a] rounded-xl">
+              <div className="text-3xl mb-3 opacity-30">∅</div>
+              <p className="text-sm">No projects found.</p>
+              <p className="text-xs mt-1 text-[#3a3a3a]">Run the SQL schema in Supabase to get started.</p>
             </div>
           )}
 
@@ -157,33 +181,35 @@ export default async function DashboardPage() {
           </div>
         </section>
 
-        {/* Operational Feed */}
+        {/* ── Operational Feed ─────────────────────────────────────────── */}
         {!error && (
           <section>
             <OperationalFeed />
           </section>
         )}
 
-        {/* Operational Runtime — scheduled job engine */}
+        {/* ── Operational Runtime ──────────────────────────────────────── */}
         {!error && (
           <OperationalRuntime />
         )}
 
-        {/* Recent activity */}
+        {/* ── Recent activity ──────────────────────────────────────────── */}
         {recentLogs.length > 0 && (
           <section>
-            <h3 className="text-xs font-medium text-[#525252] uppercase tracking-wider mb-3">Recent Activity</h3>
+            <h3 className="text-xs font-medium text-[#3a3a3a] uppercase tracking-wider mb-3">Recent Activity</h3>
             <div className="space-y-1.5">
               {recentLogs.map(log => (
-                <div key={log.id}
-                  className="flex items-center gap-3 text-xs text-[#525252] bg-[#111] border border-[#1a1a1a] rounded-lg px-3 py-2">
+                <div
+                  key={log.id}
+                  className="flex items-center gap-3 text-xs bg-[#111] border border-[#1a1a1a] rounded-lg px-3 py-2 hover:border-[#222] transition-colors"
+                >
                   <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${
                     log.status === 'completed' ? 'bg-[#22c55e]' :
-                    log.status === 'failed' ? 'bg-red-500' : 'bg-[#f59e0b]'
+                    log.status === 'failed'    ? 'bg-red-500'   : 'bg-[#f59e0b]'
                   }`} />
-                  <span className="text-[#737373] font-mono">{log.action_type}</span>
-                  <span className="flex-1 truncate">{log.summary}</span>
-                  <span className="shrink-0 text-[10px]">
+                  <span className="text-[#525252] font-mono text-[10px] shrink-0">{log.action_type}</span>
+                  <span className="flex-1 truncate text-[#737373]">{log.summary}</span>
+                  <span className="shrink-0 text-[10px] text-[#3a3a3a] tabular-nums">
                     {new Date(log.created_at).toLocaleTimeString()}
                   </span>
                 </div>
