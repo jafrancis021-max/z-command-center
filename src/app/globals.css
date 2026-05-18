@@ -1,0 +1,31 @@
+@import "tailwindcss";
+
+:root {
+  --background: #0a0a0a;
+  --foreground: #e5e5e5;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: #111; }
+::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #444; }
+
+.z-prose h1, .z-prose h2, .z-prose h3 { color: #f59e0b; margin: 0.75em 0 0.25em; font-weight: 600; }
+.z-prose h1 { font-size: 1.1rem; }
+.z-prose h2 { font-size: 1rem; }
+.z-prose h3 { font-size: 0.9rem; }
+.z-prose p { margin: 0.4em 0; line-height: 1.6; }
+.z-prose ul, .z-prose ol { margin: 0.4em 0; padding-left: 1.25em; }
+.z-prose li { margin: 0.2em 0; }
+.z-prose strong { color: #f5f5f5; font-weight: 600; }
+.z-prose code { background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 3px; padding: 0.1em 0.3em; font-size: 0.82em; color: #f59e0b; }
+.z-prose pre { background: #111; border: 1px solid #222; border-radius: 6px; padding: 0.75em 1em; margin: 0.5em 0; overflow-x: auto; }
+.z-prose pre code { background: none; border: none; padding: 0; color: #e5e5e5; }
+.z-prose blockquote { border-left: 3px solid #f59e0b; margin: 0.5em 0; padding-left: 0.75em; color: #a3a3a3; }
