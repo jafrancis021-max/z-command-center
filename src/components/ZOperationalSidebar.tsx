@@ -30,6 +30,9 @@ interface SidebarData {
   chains: {
     waiting_count: number
   }
+  memories: {
+    active_count: number
+  }
   feed: Array<{
     id: string
     event_type: string
@@ -207,6 +210,17 @@ function SidebarContent({ data, lastRefresh }: { data: SidebarData; lastRefresh:
           >
             <span className="text-[9px] text-[#737373]">Chains waiting</span>
             <span className="text-xs font-semibold text-blue-400">{data.chains.waiting_count}</span>
+          </Link>
+        )}
+
+        {/* Operational memories */}
+        {data.memories.active_count > 0 && (
+          <Link
+            href="/memory"
+            className="flex items-center justify-between bg-[#111] border border-[#1e1e1e] rounded-xl px-3 py-2 hover:border-violet-500/30 transition-colors"
+          >
+            <span className="text-[9px] text-[#737373]">Operational memories</span>
+            <span className="text-xs font-semibold text-violet-400">{data.memories.active_count}</span>
           </Link>
         )}
 

@@ -14,6 +14,7 @@ import type { JobResult } from '@/types'
 import { getActiveAccount, fetchRecentEmails } from '@/lib/gmail-client'
 import { emitFeedEvent } from '@/lib/feed'
 import { detectWorkflowIntent } from '@/lib/inbox-workflow-detector'
+import { runOperationalMemoryConsolidation } from '@/lib/operational-memory-engine'
 
 export type LogFn = (
   level: 'info' | 'warn' | 'error',
@@ -425,26 +426,49 @@ const approvalFollowup: Handler = async (db, _config, log) => {
 // ── memory_compaction ─────────────────────────────────────────────────────────
 
 const memoryCompaction: Handler = async (db, _config, log) => {
-  await log('info', 'Checking memory extraction backlog')
+  await log('info', 'Running operational memory consolidation')
 
-  const { count: pending } = await db
-    .from('memory_extractions')
-    .select('id', { count: 'exact', head: true })
+  try {
+    const result = await runOperationalMemoryConsolidation(db)
 
-  const { count: memories } = await db
-    .from('project_memories')
-    .select('id', { count: 'exact', head: true })
-    .eq('ingestion_status', 'complete')
+    const total = result.created + result.updated
+    await log('info', `Consolidation complete: ${result.created} created, ${result.updated} updated`, {
+      by_type: result.by_type,
+    })
 
-  await log('info', `Memory state: ${memories ?? 0} processed memories, ${pending ?? 0} total extractions`)
+    if (total > 0) {
+      await emitFeedEvent(db, {
+        event_type:  'memory_consolidated',
+        title:       `Operational memory updated — ${total} pattern${total > 1 ? 's' : ''}`,
+        description: `${result.created} new, ${result.updated} updated`,
+        severity:    'info',
+        metadata:    { created: result.created, updated: result.updated, by_type: result.by_type },
+      })
+    }
 
-  return {
-    ok:                      true,
-    message:                 `Memory: ${memories ?? 0} processed memories, ${pending ?? 0} extractions indexed`,
-    actions_taken:           [],
-    next_recommended_action: (pending ?? 0) > 100
-      ? 'Consider archiving old memory extractions'
-      : 'Memory index is healthy',
+    const actions = Object.entries(result.by_type)
+      .filter(([, v]) => v.created + v.updated > 0)
+      .map(([type, v]) => `${type}: +${v.created} new, ~${v.updated} updated`)
+
+    return {
+      ok:                      true,
+      message:                 total > 0
+        ? `Memory consolidated: ${result.created} created, ${result.updated} updated`
+        : 'Memory consolidation ran — no new patterns detected',
+      actions_taken:           actions,
+      next_recommended_action: result.created > 0
+        ? 'Review new operational memories at /memory'
+        : 'Operational memory is up to date',
+    }
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'Unknown error'
+    await log('error', `Memory consolidation failed: ${msg}`)
+    return {
+      ok:                      false,
+      message:                 `Consolidation failed: ${msg}`,
+      actions_taken:           [],
+      next_recommended_action: 'Check DB connectivity and table existence',
+    }
   }
 }
 

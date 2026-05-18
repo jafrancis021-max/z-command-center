@@ -478,6 +478,38 @@ export interface InboxWorkflowSuggestion {
   email_sender:      string | null
 }
 
+// ── Phase 2C Step 5 — Operational Memory ─────────────────────────────────────
+
+export type MemoryType =
+  | 'recurring_workflow'
+  | 'repeated_blocker'
+  | 'approval_pattern'
+  | 'inbox_pattern'
+  | 'chain_pattern'
+  | 'project_context'
+  | 'operational_risk'
+
+export type MemoryStatus = 'active' | 'archived'
+
+export interface OperationalMemory {
+  id:               string
+  project_id:       string | null
+  memory_type:      MemoryType
+  key:              string | null
+  title:            string
+  summary:          string
+  evidence:         Array<Record<string, unknown>>
+  confidence:       number
+  source_type:      string
+  source_ids:       string[]
+  recurrence_count: number
+  first_seen_at:    string
+  last_seen_at:     string
+  status:           MemoryStatus
+  created_at:       string
+  updated_at:       string
+}
+
 // ── Phase 2C Step 4 — Workflow Chaining ───────────────────────────────────────
 
 export type ChainStatus = 'pending' | 'running' | 'waiting_approval' | 'completed' | 'failed'

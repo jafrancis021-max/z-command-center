@@ -63,6 +63,16 @@ function MailFilterIcon() {
   )
 }
 
+function MemoryIcon() {
+  return (
+    <svg className="w-4 h-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5">
+      <circle cx="10" cy="10" r="7.5" />
+      <circle cx="10" cy="10" r="3" />
+      <path d="M10 2.5v5M10 12.5v5M2.5 10h5M12.5 10h5" strokeLinecap="round" />
+    </svg>
+  )
+}
+
 // ── Nav data ──────────────────────────────────────────────────────────────────
 
 const NAV_PRIMARY = [
@@ -73,6 +83,7 @@ const NAV_PRIMARY = [
 ]
 
 const NAV_SECONDARY = [
+  { href: '/memory',       label: 'Memory',       Icon: MemoryIcon },
   { href: '/drafts',       label: 'Drafts',       Icon: PencilIcon },
   { href: '/email-triage', label: 'Email Triage', Icon: MailFilterIcon },
 ]

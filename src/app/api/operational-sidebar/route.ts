@@ -20,6 +20,7 @@ export async function GET() {
     feedRes,
     pendingSuggestionsRes,
     waitingChainRunsRes,
+    activeMemoriesRes,
   ] = await Promise.allSettled([
     db.from('scheduled_jobs')
       .select('id', { count: 'exact', head: true })
@@ -75,6 +76,10 @@ export async function GET() {
     db.from('workflow_chain_runs')
       .select('id', { count: 'exact', head: true })
       .eq('status', 'waiting_approval'),
+
+    db.from('operational_memories')
+      .select('id', { count: 'exact', head: true })
+      .eq('status', 'active'),
   ])
 
   function getCount(res: PromiseSettledResult<{ count: number | null }>): number {
@@ -90,6 +95,7 @@ export async function GET() {
   const criticalBlockers    = getCount(criticalBlockersRes as PromiseSettledResult<{ count: number | null }>)
   const pendingSuggestions  = getCount(pendingSuggestionsRes  as PromiseSettledResult<{ count: number | null }>)
   const waitingChainRuns    = getCount(waitingChainRunsRes    as PromiseSettledResult<{ count: number | null }>)
+  const activeMemories      = getCount(activeMemoriesRes      as PromiseSettledResult<{ count: number | null }>)
 
   const lastSuccessAt =
     lastSuccessRes.status === 'fulfilled'
@@ -169,6 +175,9 @@ export async function GET() {
     },
     chains: {
       waiting_count: waitingChainRuns,
+    },
+    memories: {
+      active_count: activeMemories,
     },
     feed:  feedItems,
     focus,
