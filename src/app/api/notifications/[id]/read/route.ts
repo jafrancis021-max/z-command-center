@@ -4,16 +4,17 @@ import { auditAction } from '@/lib/audit'
 
 export const dynamic = 'force-dynamic'
 
-export async function POST(_req: Request, { params }: { params: { id: string } }) {
+export async function POST(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
   const db = getAdmin()
   const { error } = await db
     .from('notifications')
     .update({ read: true })
-    .eq('id', params.id)
+    .eq('id', id)
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
-  await auditAction('notification.read', 'notification', params.id)
+  await auditAction('notification.read', 'notification', id)
 
   return NextResponse.json({ ok: true })
 }

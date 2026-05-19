@@ -2,14 +2,15 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import type { BrowserExecutionRun, BrowserExecutionStep, BrowserRunMode } from '@/types'
+import { ExecutionStep, StatusPill, Panel, SectionLabel } from '@/components/ui'
 
 // ── Config ────────────────────────────────────────────────────────────────────
 
 const DEMO_TARGETS = [
-  { url: 'https://example.com',         label: 'example.com' },
-  { url: 'https://books.toscrape.com',  label: 'books.toscrape.com' },
-  { url: 'https://quotes.toscrape.com', label: 'quotes.toscrape.com' },
-  { url: 'https://httpbin.org/html',    label: 'httpbin.org/html' },
+  { url: 'https://example.com',         label: 'example.com',        desc: 'W3C placeholder page'     },
+  { url: 'https://books.toscrape.com',  label: 'books.toscrape.com', desc: 'Safe demo book catalog'   },
+  { url: 'https://quotes.toscrape.com', label: 'quotes.toscrape.com',desc: 'Safe demo quote feed'     },
+  { url: 'https://httpbin.org/html',    label: 'httpbin.org/html',   desc: 'HTTP test mirror page'    },
 ]
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -23,173 +24,239 @@ function relativeTime(iso: string): string {
   return `${Math.floor(mins / 60)}h ago`
 }
 
-const STATUS_CFG: Record<string, { dot: string; text: string; label: string }> = {
-  pending:          { dot: 'bg-[#555]',            text: 'text-[#888]',    label: 'Pending' },
-  running:          { dot: 'bg-[#f59e0b] animate-pulse', text: 'text-[#f59e0b]', label: 'Running' },
-  waiting_approval: { dot: 'bg-blue-400 animate-pulse',  text: 'text-blue-400',  label: 'Awaiting Approval' },
-  completed:        { dot: 'bg-[#22c55e]',          text: 'text-[#22c55e]', label: 'Completed' },
-  failed:           { dot: 'bg-red-500',             text: 'text-red-400',   label: 'Failed' },
+function durationBetween(a: string, b: string): string {
+  const ms = Math.abs(new Date(b).getTime() - new Date(a).getTime())
+  if (ms < 1000)  return `${ms}ms`
+  if (ms < 60000) return `${(ms / 1000).toFixed(1)}s`
+  return `${Math.floor(ms / 60000)}m ${Math.floor((ms % 60000) / 1000)}s`
 }
 
-const STEP_STATUS_CFG: Record<string, { icon: string; color: string }> = {
-  pending:   { icon: '○', color: 'text-[#444]' },
-  running:   { icon: '●', color: 'text-[#f59e0b] animate-pulse' },
-  completed: { icon: '✓', color: 'text-[#22c55e]' },
-  failed:    { icon: '✗', color: 'text-red-400' },
-  skipped:   { icon: '–', color: 'text-[#444]' },
+function stepDuration(steps: BrowserExecutionStep[], idx: number): string | undefined {
+  const step = steps[idx]
+  const next = steps[idx + 1]
+  if (!step || !next) return undefined
+  return durationBetween(step.created_at, next.created_at)
 }
 
-// ── Step card ─────────────────────────────────────────────────────────────────
+// ── Run list item ─────────────────────────────────────────────────────────────
 
-function StepCard({ step }: { step: BrowserExecutionStep }) {
-  const cfg  = STEP_STATUS_CFG[step.status] ?? STEP_STATUS_CFG.pending
-
-  return (
-    <div className="flex items-start gap-3 bg-[#0f0f0f] border border-[#1a1a1a] rounded-xl px-4 py-3">
-      <span className={`text-sm font-mono mt-0.5 shrink-0 ${cfg.color}`}>{cfg.icon}</span>
-      <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-2 mb-0.5">
-          <span className="text-[10px] font-mono text-[#444] bg-[#161616] border border-[#1e1e1e] px-1.5 py-0.5 rounded">
-            {step.action_type}
-          </span>
-          <span className={`text-[10px] ${cfg.color}`}>{step.status}</span>
-        </div>
-        <p className="text-[11px] text-[#888]">{step.description}</p>
-        {step.metadata && Object.keys(step.metadata).length > 0 && (
-          <div className="mt-1.5 space-y-0.5">
-            {Object.entries(step.metadata).map(([k, v]) => (
-              <p key={k} className="text-[10px] text-[#444] font-mono">
-                <span className="text-[#333]">{k}:</span>{' '}
-                <span className="text-[#666]">{String(v)}</span>
-              </p>
-            ))}
-          </div>
-        )}
-      </div>
-      <span className="shrink-0 text-[9px] text-[#2e2e2e] tabular-nums">
-        #{step.step_order}
-      </span>
-    </div>
-  )
-}
-
-// ── Run card ──────────────────────────────────────────────────────────────────
-
-function RunCard({
-  run,
-  selected,
-  onSelect,
+function RunListItem({
+  run, selected, onClick,
 }: {
   run: BrowserExecutionRun
   selected: boolean
-  onSelect: () => void
+  onClick: () => void
 }) {
-  const cfg = STATUS_CFG[run.status] ?? STATUS_CFG.pending
+  const isActive   = run.status === 'running' || run.status === 'waiting_approval'
+  const isTerminal = run.status === 'completed' || run.status === 'failed'
+
+  const statusBar =
+    run.status === 'completed'        ? 'bg-[#22c55e]' :
+    run.status === 'failed'           ? 'bg-red-500'    :
+    run.status === 'running'          ? 'bg-[#f59e0b]'  :
+    run.status === 'waiting_approval' ? 'bg-blue-400'   : 'bg-[#2a2a2a]'
 
   return (
     <button
-      onClick={onSelect}
-      className={`w-full text-left bg-[#0f0f0f] border rounded-xl px-4 py-3 transition-colors ${
-        selected ? 'border-[#f59e0b]/30' : 'border-[#1a1a1a] hover:border-[#242424]'
+      onClick={onClick}
+      className={`relative w-full text-left rounded-xl border overflow-hidden transition-all duration-150 ${
+        selected
+          ? 'bg-[#0f0f0f] border-[#f59e0b]/20 shadow-[0_2px_12px_rgba(0,0,0,0.3)]'
+          : 'bg-[#0a0a0a] border-[#161616] hover:border-[#1e1e1e] hover:bg-[#0d0d0d]'
       }`}
     >
-      <div className="flex items-center gap-2 mb-1.5">
-        <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${cfg.dot}`} />
-        <span className={`text-[10px] font-medium ${cfg.text}`}>{cfg.label}</span>
-        <span className="text-[9px] text-[#2e2e2e] ml-auto tabular-nums">{relativeTime(run.created_at)}</span>
-      </div>
-      <p className="text-[11px] text-[#777] truncate">{run.target_url}</p>
-      <div className="flex items-center gap-2 mt-1.5">
-        <span className="text-[9px] text-[#333] bg-[#161616] border border-[#1e1e1e] px-1.5 py-0.5 rounded">
-          {run.mode}
-        </span>
-        {run.result && typeof run.result === 'object' && 'page_title' in run.result && (
-          <span className="text-[9px] text-[#444] truncate">
-            {String(run.result.page_title)}
+      <div className={`absolute left-0 top-0 bottom-0 w-[2px] ${statusBar} ${isActive ? 'animate-pulse' : ''}`} />
+
+      <div className="pl-3 pr-3 py-2">
+        <div className="flex items-center gap-2 mb-0.5">
+          <span className="text-[9.5px] text-[#666] flex-1 truncate font-mono">
+            {new URL(run.target_url).hostname}
           </span>
-        )}
+          <span className="text-[7.5px] text-[#252525] tabular-nums shrink-0">{relativeTime(run.created_at)}</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <span className="text-[7.5px] bg-[#141414] border border-[#1a1a1a] text-[#333] px-1.5 py-0.5 rounded font-mono">
+            {run.mode}
+          </span>
+          <StatusPill status={run.status} size="xs" />
+          {isTerminal && run.result && typeof run.result === 'object' && 'page_title' in run.result && (
+            <span className="text-[7.5px] text-[#2e2e2e] truncate flex-1">{String(run.result.page_title)}</span>
+          )}
+        </div>
       </div>
     </button>
   )
 }
 
-// ── Result panel ──────────────────────────────────────────────────────────────
+// ── Execution progress bar ────────────────────────────────────────────────────
 
-function RunDetail({ run }: { run: BrowserExecutionRun }) {
-  const cfg        = STATUS_CFG[run.status] ?? STATUS_CFG.pending
-  const screenshotUrl = run.result && typeof run.result === 'object' && 'screenshot_url' in run.result
-    ? String(run.result.screenshot_url)
-    : null
+function ExecutionProgress({ steps }: { steps: BrowserExecutionStep[] }) {
+  const total     = steps.length
+  const completed = steps.filter(s => s.status === 'completed').length
+  const failed    = steps.filter(s => s.status === 'failed').length
+  const pct       = total > 0 ? Math.round((completed / total) * 100) : 0
+
+  if (total === 0) return null
 
   return (
-    <div className="space-y-4">
-      {/* Status header */}
-      <div className="bg-[#0f0f0f] border border-[#1a1a1a] rounded-xl px-4 py-3">
-        <div className="flex items-center gap-2 mb-2">
-          <span className={`w-2 h-2 rounded-full shrink-0 ${cfg.dot}`} />
-          <span className={`text-xs font-semibold ${cfg.text}`}>{cfg.label}</span>
-          <span className="text-[9px] text-[#333] ml-auto tabular-nums">{relativeTime(run.created_at)}</span>
-        </div>
-        <p className="text-[11px] text-[#666] font-mono break-all">{run.target_url}</p>
-        {run.task_description && (
-          <p className="text-[10px] text-[#444] mt-1">{run.task_description}</p>
-        )}
-        <div className="flex items-center gap-2 mt-2">
-          <span className="text-[9px] bg-[#161616] border border-[#1e1e1e] text-[#444] px-1.5 py-0.5 rounded">
-            {run.mode}
-          </span>
-          <span className="text-[9px] text-[#2e2e2e] font-mono">{run.id.slice(0, 8)}…</span>
-        </div>
+    <div className="bg-[#0a0a0a] border border-[#161616] rounded-xl px-3 py-2.5">
+      <div className="flex items-center justify-between mb-1.5">
+        <span className="text-[8.5px] font-semibold text-[#2e2e2e] uppercase tracking-[0.1em]">Progress</span>
+        <span className="text-[8.5px] text-[#f59e0b] tabular-nums font-mono">{completed}/{total} steps</span>
       </div>
+      <div className="h-1 bg-[#161616] rounded-full overflow-hidden">
+        <div
+          className={`h-full rounded-full transition-all duration-500 ${failed > 0 ? 'bg-red-500' : 'bg-[#f59e0b]'}`}
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+      {failed > 0 && (
+        <p className="text-[7.5px] text-red-400 mt-1">{failed} step{failed > 1 ? 's' : ''} failed</p>
+      )}
+    </div>
+  )
+}
+
+// ── Execution summary ─────────────────────────────────────────────────────────
+
+function ExecutionSummary({ run }: { run: BrowserExecutionRun }) {
+  const steps     = run.steps ?? []
+  const firstStep = steps[0]
+  const lastStep  = steps[steps.length - 1]
+  const duration  = firstStep && lastStep ? durationBetween(firstStep.created_at, lastStep.created_at) : null
+  const screenshot = run.result && typeof run.result === 'object' && 'screenshot_url' in run.result
+    ? String(run.result.screenshot_url)
+    : null
+  const pageTitle  = run.result && typeof run.result === 'object' && 'page_title' in run.result
+    ? String(run.result.page_title)
+    : null
+  const isRunning  = run.status === 'running'
+
+  const statusBarColor =
+    run.status === 'completed' ? 'bg-[#22c55e]' :
+    run.status === 'failed'    ? 'bg-red-500'    :
+    run.status === 'running'   ? 'bg-[#f59e0b] animate-pulse' :
+                                 'bg-[#333]'
+
+  return (
+    <div className="space-y-3">
+      {/* Status header panel */}
+      <Panel noPad className="overflow-hidden">
+        <div className={`h-[2px] w-full ${statusBarColor}`} />
+
+        <div className="p-4">
+          <div className="flex items-start justify-between gap-3 mb-3">
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2 mb-1.5">
+                <StatusPill status={run.status} />
+                {isRunning && (
+                  <span className="w-1 h-1 rounded-full bg-[#f59e0b] animate-ping opacity-60" />
+                )}
+                <span className="text-[7.5px] text-[#252525] font-mono">{run.id.slice(0, 8)}</span>
+              </div>
+              <p className="text-[10.5px] text-[#555] font-mono break-all">{run.target_url}</p>
+              {run.task_description && (
+                <p className="text-[9.5px] text-[#3a3a3a] mt-1">{run.task_description}</p>
+              )}
+            </div>
+            <div className="shrink-0 text-right space-y-1">
+              <span className="block text-[7.5px] bg-[#141414] border border-[#1a1a1a] text-[#333] px-2 py-0.5 rounded font-mono">{run.mode}</span>
+              {duration && (
+                <span className="block text-[8.5px] text-[#3a3a3a] tabular-nums font-mono">{duration}</span>
+              )}
+            </div>
+          </div>
+
+          {/* Metrics strip */}
+          <div className="grid grid-cols-3 gap-2">
+            {[
+              { label: 'Steps',  value: steps.length,                                                                   color: 'text-[#777]'   },
+              { label: 'Passed', value: steps.filter(s => s.status === 'completed').length,                              color: 'text-[#22c55e]' },
+              { label: 'Failed', value: steps.filter(s => s.status === 'failed').length,
+                color: steps.filter(s => s.status === 'failed').length > 0 ? 'text-red-400' : 'text-[#2e2e2e]' },
+            ].map(m => (
+              <div key={m.label} className="bg-[#090909] border border-[#151515] rounded-xl px-3 py-2 text-center">
+                <p className={`text-[16px] font-bold tabular-nums ${m.color}`}>{m.value}</p>
+                <p className="text-[7.5px] text-[#2a2a2a] mt-0.5 uppercase tracking-wide">{m.label}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </Panel>
+
+      {/* Progress (running only) */}
+      {isRunning && steps.length > 0 && <ExecutionProgress steps={steps} />}
 
       {/* Screenshot */}
-      {screenshotUrl && (
-        <div className="bg-[#0f0f0f] border border-[#1a1a1a] rounded-xl overflow-hidden">
-          <p className="text-[9px] font-semibold text-[#2e2e2e] uppercase tracking-[0.1em] px-4 py-2 border-b border-[#161616]">
-            Screenshot
-          </p>
+      {screenshot && (
+        <Panel noPad>
+          <div className="flex items-center justify-between px-4 py-2 border-b border-[#131313]">
+            <SectionLabel>Screenshot</SectionLabel>
+            {pageTitle && <span className="text-[8.5px] text-[#444] truncate max-w-[180px]">{pageTitle}</span>}
+          </div>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={screenshotUrl}
-            alt="Browser screenshot"
-            className="w-full block"
-          />
-        </div>
+          <img src={screenshot} alt="Page screenshot" className="w-full block" />
+        </Panel>
       )}
 
       {/* Error */}
       {run.error_message && (
-        <div className="bg-red-500/[0.04] border border-red-500/20 rounded-xl px-4 py-3">
-          <p className="text-[10px] font-semibold text-red-400 mb-1">Error</p>
-          <p className="text-[10px] text-red-400/70 font-mono">{run.error_message}</p>
+        <div className="bg-red-500/[0.04] border border-red-500/15 rounded-2xl px-4 py-3">
+          <p className="text-[8.5px] font-semibold text-red-400 uppercase tracking-wide mb-1.5">Execution Error</p>
+          <p className="text-[9.5px] text-red-400/60 font-mono leading-relaxed">{run.error_message}</p>
         </div>
       )}
 
-      {/* Steps timeline */}
-      {(run.steps ?? []).length > 0 && (
-        <div>
-          <p className="text-[9px] font-semibold text-[#2e2e2e] uppercase tracking-[0.1em] mb-2">
-            Step Timeline
-          </p>
-          <div className="space-y-1.5">
-            {(run.steps ?? []).map(step => (
-              <StepCard key={step.id} step={step} />
+      {/* Execution timeline */}
+      {steps.length > 0 && (
+        <Panel>
+          <div className="flex items-center justify-between mb-3">
+            <SectionLabel>Execution Timeline</SectionLabel>
+            <span className="text-[7.5px] text-[#252525] tabular-nums">{steps.length} steps</span>
+          </div>
+          <div className="pt-1">
+            {steps.map((step, i) => (
+              <ExecutionStep
+                key={step.id}
+                step={step}
+                isLast={i === steps.length - 1}
+                duration={stepDuration(steps, i)}
+              />
             ))}
           </div>
-        </div>
+        </Panel>
       )}
 
       {/* Result JSON */}
       {run.result && (
-        <div>
-          <p className="text-[9px] font-semibold text-[#2e2e2e] uppercase tracking-[0.1em] mb-2">
-            Result JSON
-          </p>
-          <pre className="bg-[#0a0a0a] border border-[#1a1a1a] rounded-xl px-4 py-3 text-[10px] text-[#555] font-mono overflow-x-auto whitespace-pre-wrap">
+        <Panel>
+          <SectionLabel>Result</SectionLabel>
+          <pre className="bg-[#070707] border border-[#151515] rounded-xl px-3 py-2.5 text-[8.5px] text-[#3e3e3e] font-mono overflow-x-auto whitespace-pre-wrap leading-relaxed">
             {JSON.stringify(run.result, null, 2)}
           </pre>
-        </div>
+        </Panel>
       )}
+    </div>
+  )
+}
+
+// ── Empty detail ──────────────────────────────────────────────────────────────
+
+function EmptyDetail() {
+  return (
+    <div className="h-full min-h-[400px] bg-[#090909] border border-[#151515] rounded-2xl flex items-center justify-center">
+      <div className="text-center">
+        <div className="w-14 h-14 rounded-2xl bg-[#101010] border border-[#1a1a1a] flex items-center justify-center mx-auto mb-4">
+          <svg className="w-6 h-6 text-[#222]" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5">
+            <rect x="2" y="3" width="16" height="14" rx="2" />
+            <path d="M2 7h16" strokeLinecap="round" />
+            <circle cx="5.5" cy="5" r="0.75" fill="currentColor" stroke="none" />
+            <circle cx="8.5" cy="5" r="0.75" fill="currentColor" stroke="none" />
+          </svg>
+        </div>
+        <p className="text-[11px] text-[#333]">Select a run to replay</p>
+        <p className="text-[8.5px] text-[#202020] mt-0.5">or launch a new demo below</p>
+      </div>
     </div>
   )
 }
@@ -197,14 +264,13 @@ function RunDetail({ run }: { run: BrowserExecutionRun }) {
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function BrowserExecutionPage() {
-  const [runs, setRuns]           = useState<BrowserExecutionRun[]>([])
-  const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [runs, setRuns]               = useState<BrowserExecutionRun[]>([])
+  const [selectedId, setSelectedId]   = useState<string | null>(null)
   const [selectedRun, setSelectedRun] = useState<BrowserExecutionRun | null>(null)
-  const [loading, setLoading]     = useState(true)
-  const [launching, setLaunching] = useState(false)
-  const [targetUrl, setTargetUrl] = useState(DEMO_TARGETS[0].url)
-  const [mode, setMode]           = useState<BrowserRunMode>('headless')
-  const [pollInterval, setPollInterval] = useState<ReturnType<typeof setInterval> | null>(null)
+  const [loading, setLoading]         = useState(true)
+  const [launching, setLaunching]     = useState(false)
+  const [targetUrl, setTargetUrl]     = useState(DEMO_TARGETS[0].url)
+  const [mode, setMode]               = useState<BrowserRunMode>('headless')
 
   const loadRuns = useCallback(async () => {
     const res = await fetch('/api/browser-execution/runs')
@@ -220,6 +286,7 @@ export default function BrowserExecutionPage() {
     if (res.ok) {
       const { run } = await res.json() as { run: BrowserExecutionRun }
       setSelectedRun(run)
+      setRuns(prev => prev.map(r => r.id === id ? { ...r, status: run.status } : r))
     }
   }, [])
 
@@ -228,26 +295,21 @@ export default function BrowserExecutionPage() {
   useEffect(() => {
     if (!selectedId) return
     void loadRunDetail(selectedId)
-  }, [selectedId, loadRunDetail])
-
-  // Poll active run every 2s
-  useEffect(() => {
-    if (pollInterval) clearInterval(pollInterval)
-    if (!selectedId) return
 
     const interval = setInterval(async () => {
-      await loadRunDetail(selectedId)
-      await loadRuns()
-      const current = runs.find(r => r.id === selectedId)
-      if (current?.status === 'completed' || current?.status === 'failed') {
+      const res = await fetch(`/api/browser-execution/runs/${selectedId}`)
+      if (!res.ok) return
+      const { run } = await res.json() as { run: BrowserExecutionRun }
+      setSelectedRun(run)
+      setRuns(prev => prev.map(r => r.id === selectedId ? { ...r, status: run.status } : r))
+      if (run.status === 'completed' || run.status === 'failed') {
         clearInterval(interval)
+        void loadRuns()
       }
     }, 2000)
 
-    setPollInterval(interval)
     return () => clearInterval(interval)
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedId])
+  }, [selectedId, loadRunDetail, loadRuns])
 
   async function handleRunDemo() {
     setLaunching(true)
@@ -268,136 +330,142 @@ export default function BrowserExecutionPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a]">
+    <div className="min-h-screen bg-[#080808]">
       {/* Header */}
-      <header className="sticky top-0 z-10 border-b border-[#161616] bg-[#0a0a0a]/95 backdrop-blur-md px-6 h-14 flex items-center gap-4">
+      <header className="sticky top-0 z-10 border-b border-[#131313] bg-[#080808]/96 backdrop-blur-md px-6 h-14 flex items-center gap-4">
         <div className="flex items-center gap-3">
-          <h1 className="text-[11px] font-semibold text-[#888]">Browser Execution</h1>
-          <span className="text-[9px] font-semibold text-[#444] bg-[#141414] border border-[#1e1e1e] px-2 py-0.5 rounded uppercase tracking-wide">
+          <div className="w-6 h-6 rounded-lg bg-[#f59e0b]/[0.07] border border-[#f59e0b]/15 flex items-center justify-center text-[9px] text-[#f59e0b]">
+            ▣
+          </div>
+          <h1 className="text-[10px] font-semibold text-[#333] uppercase tracking-[0.1em]">Browser Execution</h1>
+          <span className="text-[7.5px] font-semibold text-[#2a2a2a] bg-[#101010] border border-[#1a1a1a] px-2 py-0.5 rounded uppercase tracking-wider">
             Sandbox
           </span>
         </div>
         <div className="ml-auto flex items-center gap-2">
-          <span className="text-[9px] text-[#2e2e2e]">
-            Safe demo domains only · No real portal access
-          </span>
+          <span className="w-1 h-1 rounded-full bg-[#22c55e]" />
+          <span className="text-[8.5px] text-[#222]">Safe demo domains · Read-only</span>
         </div>
       </header>
 
-      <main className="px-6 py-6 max-w-6xl mx-auto">
-        <div className="grid grid-cols-1 lg:grid-cols-[360px,1fr] gap-6">
+      <main className="px-6 py-6 max-w-[1200px] mx-auto">
+        <div className="grid grid-cols-1 lg:grid-cols-[300px,1fr] gap-5">
 
-          {/* ── Left: controls + run list ───────────────────────────────── */}
+          {/* ── Left: controls + history ─────────────────────────── */}
           <div className="space-y-4">
 
-            {/* Launch panel */}
-            <div className="bg-[#0f0f0f] border border-[#1a1a1a] rounded-xl p-4 space-y-4">
-              <div className="flex items-center gap-2 mb-1">
-                <div className="w-6 h-6 rounded-lg bg-[#f59e0b]/[0.08] border border-[#f59e0b]/15 flex items-center justify-center">
-                  <svg className="w-3.5 h-3.5 text-[#f59e0b]" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6">
-                    <rect x="2" y="3" width="16" height="14" rx="2" />
-                    <path d="M2 7h16" strokeLinecap="round" />
-                    <circle cx="5.5" cy="5" r="0.75" fill="currentColor" stroke="none" />
-                    <circle cx="8.5" cy="5" r="0.75" fill="currentColor" stroke="none" />
-                  </svg>
+            {/* Launch control */}
+            <Panel noPad>
+              <div className="px-4 pt-3.5 pb-3 border-b border-[#111]">
+                <div className="flex items-center gap-2 mb-0.5">
+                  <div className="w-5 h-5 rounded-lg bg-[#f59e0b]/[0.07] border border-[#f59e0b]/15 flex items-center justify-center text-[8.5px] text-[#f59e0b]">▣</div>
+                  <p className="text-[10.5px] font-semibold text-[#777]">Run Demo</p>
                 </div>
-                <p className="text-[11px] font-semibold text-[#c0c0c0]">Run Demo Execution</p>
+                <p className="text-[8.5px] text-[#2a2a2a]">Controlled Playwright sandbox</p>
               </div>
 
-              {/* Target URL */}
-              <div>
-                <label className="text-[9px] font-semibold text-[#333] uppercase tracking-[0.1em] block mb-1.5">
-                  Target URL
-                </label>
-                <div className="space-y-1">
-                  {DEMO_TARGETS.map(t => (
-                    <button
-                      key={t.url}
-                      onClick={() => setTargetUrl(t.url)}
-                      className={`w-full text-left px-3 py-2 rounded-lg text-[10px] transition-colors border ${
-                        targetUrl === t.url
-                          ? 'bg-[#f59e0b]/[0.06] border-[#f59e0b]/20 text-[#f5a623]'
-                          : 'bg-[#0d0d0d] border-[#191919] text-[#555] hover:border-[#222] hover:text-[#777]'
-                      }`}
-                    >
-                      {t.label}
-                    </button>
-                  ))}
+              <div className="p-4 space-y-4">
+                {/* Target selector */}
+                <div>
+                  <SectionLabel>Target</SectionLabel>
+                  <div className="space-y-0.5">
+                    {DEMO_TARGETS.map(t => (
+                      <button
+                        key={t.url}
+                        onClick={() => setTargetUrl(t.url)}
+                        className={`w-full text-left px-3 py-2 rounded-xl text-[9.5px] transition-all border ${
+                          targetUrl === t.url
+                            ? 'bg-[#0f0f0f] border-[#f59e0b]/20 text-[#f5a623]'
+                            : 'bg-transparent border-transparent text-[#3e3e3e] hover:border-[#1a1a1a] hover:text-[#555]'
+                        }`}
+                      >
+                        <span className="font-mono">{t.label}</span>
+                        {targetUrl === t.url && (
+                          <span className="block text-[7.5px] text-[#3a3a3a] mt-0.5">{t.desc}</span>
+                        )}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-              </div>
 
-              {/* Mode selector */}
-              <div>
-                <label className="text-[9px] font-semibold text-[#333] uppercase tracking-[0.1em] block mb-1.5">
-                  Mode
-                </label>
-                <div className="grid grid-cols-2 gap-1.5">
-                  {(['headless', 'visible'] as BrowserRunMode[]).map(m => (
-                    <button
-                      key={m}
-                      onClick={() => setMode(m)}
-                      className={`px-3 py-2 rounded-lg text-[10px] font-medium transition-colors border ${
-                        mode === m
-                          ? 'bg-[#f59e0b]/[0.06] border-[#f59e0b]/20 text-[#f5a623]'
-                          : 'bg-[#0d0d0d] border-[#191919] text-[#555] hover:border-[#222]'
-                      }`}
-                    >
-                      {m === 'headless' ? '⚡ Headless' : '🖥 Visible'}
-                    </button>
-                  ))}
+                {/* Mode selector */}
+                <div>
+                  <SectionLabel>Mode</SectionLabel>
+                  <div className="grid grid-cols-2 gap-1.5">
+                    {(['headless', 'visible'] as BrowserRunMode[]).map(m => (
+                      <button
+                        key={m}
+                        onClick={() => setMode(m)}
+                        className={`px-3 py-2 rounded-xl text-[9.5px] font-medium transition-all border ${
+                          mode === m
+                            ? 'bg-[#0f0f0f] border-[#f59e0b]/20 text-[#f5a623]'
+                            : 'bg-transparent border-[#181818] text-[#333] hover:border-[#222] hover:text-[#555]'
+                        }`}
+                      >
+                        {m === 'headless' ? '⚡ Headless' : '🖥 Visible'}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-                {mode === 'visible' && (
-                  <p className="text-[9px] text-[#444] mt-1.5">
-                    Visible mode opens a real browser window on the server desktop.
-                  </p>
-                )}
-              </div>
 
-              {/* Safety notice */}
-              <div className="bg-[#0a0a0a] border border-[#1a1a1a] rounded-xl px-3 py-2.5">
-                <p className="text-[9px] font-semibold text-[#333] uppercase tracking-wide mb-1">Safety limits</p>
-                <ul className="text-[9px] text-[#333] space-y-0.5">
-                  <li>✓ Demo domains only (no real portals)</li>
-                  <li>✓ No form submission without approval</li>
-                  <li>✓ Read-only scrape operations</li>
-                  <li>✓ Screenshot + title extraction only</li>
-                </ul>
-              </div>
+                {/* Safety constraints */}
+                <div className="bg-[#090909] border border-[#151515] rounded-xl px-3 py-2.5">
+                  <p className="text-[7.5px] font-semibold text-[#252525] uppercase tracking-wide mb-1.5">Safety Constraints</p>
+                  <div className="space-y-0.5">
+                    {[
+                      'Allowlisted domains only',
+                      'No form submission without approval',
+                      'Read-only operations',
+                      'Screenshot + title extraction',
+                    ].map(s => (
+                      <p key={s} className="text-[7.5px] text-[#282828] flex items-center gap-1.5">
+                        <span className="text-[#22c55e] shrink-0">✓</span> {s}
+                      </p>
+                    ))}
+                  </div>
+                </div>
 
-              <button
-                onClick={handleRunDemo}
-                disabled={launching}
-                className="w-full bg-[#f59e0b]/[0.08] hover:bg-[#f59e0b]/[0.12] border border-[#f59e0b]/20 text-[#f5a623] rounded-xl py-2.5 text-[11px] font-semibold transition-colors disabled:opacity-40"
-              >
-                {launching ? 'Launching…' : '▶ Run Demo Execution'}
-              </button>
-            </div>
+                <button
+                  onClick={handleRunDemo}
+                  disabled={launching}
+                  className="w-full bg-[#f59e0b]/[0.07] hover:bg-[#f59e0b]/[0.12] border border-[#f59e0b]/15 hover:border-[#f59e0b]/25 text-[#f5a623] rounded-xl py-2.5 text-[10.5px] font-semibold transition-all disabled:opacity-30"
+                >
+                  {launching ? (
+                    <span className="flex items-center justify-center gap-1.5">
+                      <span className="w-1 h-1 rounded-full bg-[#f59e0b] animate-bounce" />
+                      <span className="w-1 h-1 rounded-full bg-[#f59e0b] animate-bounce [animation-delay:0.15s]" />
+                      <span className="w-1 h-1 rounded-full bg-[#f59e0b] animate-bounce [animation-delay:0.3s]" />
+                    </span>
+                  ) : '▷ Run Demo Execution'}
+                </button>
+              </div>
+            </Panel>
 
             {/* Run history */}
             <div>
               <div className="flex items-center justify-between mb-2">
-                <p className="text-[9px] font-semibold text-[#2e2e2e] uppercase tracking-[0.1em]">Run History</p>
-                <button onClick={loadRuns} className="text-[9px] text-[#2e2e2e] hover:text-[#555] transition-colors">↺ refresh</button>
+                <SectionLabel>Run History</SectionLabel>
+                <button onClick={loadRuns} className="text-[8.5px] text-[#252525] hover:text-[#555] transition-colors">↺</button>
               </div>
+
               {loading ? (
-                <div className="space-y-1.5 animate-pulse">
-                  {[80, 90, 70].map((w, i) => (
-                    <div key={i} className="h-16 bg-[#0f0f0f] border border-[#1a1a1a] rounded-xl" style={{ opacity: w / 100 }} />
+                <div className="space-y-1 animate-pulse">
+                  {[0, 1, 2].map(i => (
+                    <div key={i} className="h-12 bg-[#0a0a0a] border border-[#151515] rounded-xl" />
                   ))}
                 </div>
               ) : runs.length === 0 ? (
-                <div className="text-center py-10 bg-[#0c0c0c] border border-[#1a1a1a] rounded-xl">
-                  <p className="text-[11px] text-[#333]">No runs yet.</p>
-                  <p className="text-[10px] text-[#2a2a2a] mt-0.5">Launch the demo above to start.</p>
+                <div className="text-center py-8 bg-[#090909] border border-[#151515] rounded-2xl">
+                  <p className="text-[9.5px] text-[#282828]">No runs yet</p>
                 </div>
               ) : (
-                <div className="space-y-1.5">
+                <div className="space-y-1">
                   {runs.map(run => (
-                    <RunCard
+                    <RunListItem
                       key={run.id}
                       run={run}
                       selected={selectedId === run.id}
-                      onSelect={() => setSelectedId(run.id)}
+                      onClick={() => setSelectedId(run.id)}
                     />
                   ))}
                 </div>
@@ -405,23 +473,12 @@ export default function BrowserExecutionPage() {
             </div>
           </div>
 
-          {/* ── Right: run detail ──────────────────────────────────────── */}
+          {/* ── Right: execution detail ───────────────────────────── */}
           <div>
-            {!selectedRun ? (
-              <div className="h-full min-h-[320px] bg-[#0c0c0c] border border-[#1a1a1a] rounded-xl flex items-center justify-center">
-                <div className="text-center">
-                  <div className="w-12 h-12 rounded-xl bg-[#141414] border border-[#1e1e1e] flex items-center justify-center mx-auto mb-4">
-                    <svg className="w-5 h-5 text-[#333]" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5">
-                      <rect x="2" y="3" width="16" height="14" rx="2" />
-                      <path d="M2 7h16" strokeLinecap="round" />
-                    </svg>
-                  </div>
-                  <p className="text-[11px] text-[#444]">Select a run to view details</p>
-                  <p className="text-[10px] text-[#2e2e2e] mt-0.5">or launch a new demo above</p>
-                </div>
-              </div>
+            {selectedRun ? (
+              <ExecutionSummary run={selectedRun} />
             ) : (
-              <RunDetail run={selectedRun} />
+              <EmptyDetail />
             )}
           </div>
 

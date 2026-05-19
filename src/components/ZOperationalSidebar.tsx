@@ -69,11 +69,30 @@ const RUNTIME_CFG = {
   error:    { dot: 'bg-red-500 animate-pulse',   text: 'text-red-400',   label: 'Error'    },
 }
 
-const SEVERITY_CFG: Record<string, { dot: string; text: string }> = {
-  info:     { dot: 'bg-[#3a3a3a]', text: 'text-[#555]' },
-  success:  { dot: 'bg-[#22c55e]', text: 'text-[#22c55e]' },
-  warning:  { dot: 'bg-[#f59e0b]', text: 'text-[#f59e0b]' },
-  critical: { dot: 'bg-red-500',   text: 'text-red-400' },
+const SEVERITY_CFG: Record<string, { barColor: string; text: string; icon: string }> = {
+  info:     { barColor: 'bg-[#1e1e1e]', text: 'text-[#4a4a4a]', icon: '·' },
+  success:  { barColor: 'bg-[#22c55e]', text: 'text-[#22c55e]', icon: '✓' },
+  warning:  { barColor: 'bg-[#f59e0b]', text: 'text-[#f59e0b]', icon: '⚠' },
+  critical: { barColor: 'bg-red-500',   text: 'text-red-400',   icon: '✗' },
+}
+
+const CATEGORY_ABBR: Record<string, string> = {
+  workflow:     'WF',
+  approval:     'AP',
+  memory:       'MEM',
+  blocker:      'BLK',
+  inbox:        'IN',
+  chain:        'CH',
+  browser:      'EX',
+  notification: 'NT',
+}
+
+function eventCategory(type: string): string {
+  const t = type.toLowerCase()
+  for (const [k, v] of Object.entries(CATEGORY_ABBR)) {
+    if (t.includes(k)) return v
+  }
+  return 'SYS'
 }
 
 // ── Counter tile ──────────────────────────────────────────────────────────────
@@ -90,11 +109,11 @@ function CounterTile({
   return (
     <Link
       href={href}
-      className="bg-[#111] border border-[#1e1e1e] rounded-xl p-2.5 flex flex-col items-center gap-1 hover:border-[#2a2a2a] transition-colors group"
+      className="bg-[#0e0e0e] border border-[#1c1c1c] rounded-xl p-2 flex flex-col items-center gap-0.5 hover:border-[#282828] hover:bg-[#111] transition-all group"
     >
       <span className={`text-[17px] font-bold leading-none tabular-nums ${valueColor}`}>{value}</span>
-      <span className="text-[9px] text-[#444] group-hover:text-[#666] transition-colors text-center leading-tight">{label}</span>
-      {sub && <span className="text-[8px] text-[#333] leading-none">{sub}</span>}
+      <span className="text-[7.5px] text-[#333] group-hover:text-[#555] transition-colors text-center leading-tight mt-0.5">{label}</span>
+      {sub && <span className="text-[7px] text-[#252525] leading-none">{sub}</span>}
     </Link>
   )
 }
@@ -102,7 +121,7 @@ function CounterTile({
 // ── Row link ──────────────────────────────────────────────────────────────────
 
 function RowLink({
-  href, label, value, valueColor = 'text-[#f59e0b]', borderColor = 'border-[#1e1e1e]',
+  href, label, value, valueColor = 'text-[#f59e0b]', borderColor = 'border-[#1c1c1c]',
 }: {
   href: string
   label: string
@@ -113,11 +132,22 @@ function RowLink({
   return (
     <Link
       href={href}
-      className={`flex items-center justify-between bg-[#0f0f0f] border ${borderColor} rounded-xl px-3 py-2 hover:bg-[#141414] transition-colors`}
+      className={`flex items-center justify-between bg-[#0e0e0e] border ${borderColor} rounded-xl px-2.5 py-1.5 hover:bg-[#121212] transition-colors`}
     >
-      <span className="text-[10px] text-[#555]">{label}</span>
-      <span className={`text-[11px] font-semibold tabular-nums ${valueColor}`}>{value}</span>
+      <span className="text-[9.5px] text-[#444]">{label}</span>
+      <span className={`text-[10.5px] font-semibold tabular-nums ${valueColor}`}>{value}</span>
     </Link>
+  )
+}
+
+// ── Section divider ───────────────────────────────────────────────────────────
+
+function SectionDivider({ label }: { label: string }) {
+  return (
+    <div className="flex items-center gap-2 py-0.5">
+      <span className="text-[7.5px] text-[#1e1e1e] uppercase tracking-[0.12em] font-semibold shrink-0">{label}</span>
+      <div className="flex-1 h-px bg-[#141414]" />
+    </div>
   )
 }
 
@@ -131,152 +161,154 @@ function SidebarContent({ data, lastRefresh, onRefresh, refreshing }: {
 }) {
   const rt    = RUNTIME_CFG[data.runtime.status]
   const focus = data.focus
+
   const focusBg =
-    focus.title === 'Runtime issue'       ? 'border-red-500/25 bg-red-500/[0.04]' :
-    focus.title === 'Stale approvals'     ? 'border-[#f59e0b]/25 bg-[#f59e0b]/[0.04]' :
-    focus.title === 'Critical blockers'   ? 'border-red-500/25 bg-red-500/[0.04]' :
-    focus.title === 'Inbox triage needed' ? 'border-blue-500/25 bg-blue-500/[0.04]' :
-    focus.title === 'All clear'           ? 'border-[#22c55e]/25 bg-[#22c55e]/[0.04]' :
-                                            'border-[#1e1e1e] bg-[#0f0f0f]'
+    focus.title === 'Runtime issue'       ? 'border-red-500/20 bg-red-500/[0.03]' :
+    focus.title === 'Stale approvals'     ? 'border-[#f59e0b]/20 bg-[#f59e0b]/[0.03]' :
+    focus.title === 'Critical blockers'   ? 'border-red-500/20 bg-red-500/[0.03]' :
+    focus.title === 'Inbox triage needed' ? 'border-blue-500/20 bg-blue-500/[0.03]' :
+    focus.title === 'All clear'           ? 'border-[#22c55e]/20 bg-[#22c55e]/[0.03]' :
+                                            'border-[#1c1c1c] bg-[#0e0e0e]'
+
+  const focusTextColor =
+    focus.title === 'Runtime issue'       ? 'text-red-400' :
+    focus.title === 'Stale approvals'     ? 'text-[#f5a623]' :
+    focus.title === 'Critical blockers'   ? 'text-red-400' :
+    focus.title === 'Inbox triage needed' ? 'text-blue-400' :
+    focus.title === 'All clear'           ? 'text-[#22c55e]' :
+                                            'text-[#d4d4d4]'
 
   return (
     <div className="flex flex-col h-full overflow-y-auto">
+
       {/* Header */}
-      <div className="flex items-center justify-between px-4 h-14 border-b border-[#161616] shrink-0">
+      <div className="flex items-center justify-between px-3.5 h-14 border-b border-[#131313] shrink-0">
         <div className="flex items-center gap-2">
-          <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${rt.dot}`} />
-          <span className="text-[11px] font-semibold text-[#c0c0c0]">Z Runtime</span>
+          <span className="relative flex items-center justify-center w-2.5 h-2.5">
+            <span className={`absolute inline-flex h-full w-full rounded-full opacity-20 animate-ping ${rt.dot.split(' ')[0]}`} />
+            <span className={`relative inline-flex rounded-full h-1.5 w-1.5 ${rt.dot.split(' ')[0]}`} />
+          </span>
+          <span className="text-[10px] font-semibold text-[#bbb]">Z Runtime</span>
+          <span className={`text-[7.5px] font-medium ${rt.text}`}>{rt.label}</span>
         </div>
-        <div className="flex items-center gap-2">
-          <span className="text-[9px] text-[#333] tabular-nums">{lastRefresh.toLocaleTimeString()}</span>
+        <div className="flex items-center gap-1.5">
+          <span className="text-[7.5px] text-[#252525] tabular-nums">{lastRefresh.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
           <button
             onClick={onRefresh}
             title="Refresh"
-            className={`text-[#333] hover:text-[#666] transition-colors text-sm leading-none ${refreshing ? 'animate-spin' : ''}`}
+            className={`text-[#2a2a2a] hover:text-[#555] transition-colors text-sm leading-none ${refreshing ? 'animate-spin' : ''}`}
           >
             ↺
           </button>
         </div>
       </div>
 
-      <div className="flex flex-col gap-2.5 p-3 grow">
+      <div className="flex flex-col gap-2 p-3 grow">
 
         {/* Focus block */}
         <Link
           href={focus.action_url}
-          className={`block rounded-xl border px-3 py-2.5 transition-opacity hover:opacity-90 ${focusBg}`}
+          className={`block rounded-xl border px-3 py-2 transition-opacity hover:opacity-90 ${focusBg}`}
         >
-          <p className="text-[9px] font-semibold text-[#444] uppercase tracking-[0.1em] mb-1">Focus</p>
-          <p className="text-[11px] font-semibold text-[#d4d4d4] leading-snug">{focus.title}</p>
-          <p className="text-[10px] text-[#555] mt-0.5 leading-snug">{focus.reason}</p>
+          <p className="text-[7.5px] font-semibold text-[#2e2e2e] uppercase tracking-[0.12em] mb-0.5">Focus</p>
+          <p className={`text-[11px] font-semibold leading-snug ${focusTextColor}`}>{focus.title}</p>
+          <p className="text-[8.5px] text-[#444] mt-0.5 leading-snug">{focus.reason}</p>
         </Link>
 
         {/* Runtime status */}
-        <div className="bg-[#0f0f0f] border border-[#1e1e1e] rounded-xl px-3 py-2.5">
-          <p className="text-[9px] font-semibold text-[#333] uppercase tracking-[0.1em] mb-2">Scheduled Jobs</p>
-          <div className="flex items-center justify-between mb-1.5">
-            <div className="flex items-center gap-1.5">
-              <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${rt.dot}`} />
-              <span className={`text-[11px] font-medium ${rt.text}`}>{rt.label}</span>
-            </div>
-            <span className="text-[9px] text-[#444] tabular-nums">{data.runtime.active_jobs} active</span>
+        <div className="bg-[#0e0e0e] border border-[#1c1c1c] rounded-xl px-3 py-2">
+          <SectionDivider label="Scheduled Jobs" />
+          <div className="flex items-center justify-between mt-1">
+            <span className={`text-[9.5px] font-medium ${rt.text}`}>{data.runtime.active_jobs} active</span>
+            {data.runtime.recent_failures > 0 ? (
+              <span className="text-[8.5px] text-red-400">⚠ {data.runtime.recent_failures} failed</span>
+            ) : (
+              <span className="text-[8.5px] text-[#252525]">no failures</span>
+            )}
           </div>
-          {data.runtime.recent_failures > 0 && (
-            <p className="text-[10px] text-red-400 mb-1">
-              ⚠ {data.runtime.recent_failures} failure{data.runtime.recent_failures > 1 ? 's' : ''} today
-            </p>
-          )}
-          <p className="text-[9px] text-[#333]">Last success: {relativeTime(data.runtime.last_success_at)}</p>
+          <p className="text-[7.5px] text-[#252525] mt-0.5">Success: {relativeTime(data.runtime.last_success_at)}</p>
         </div>
 
         {/* Counter grid */}
-        <div className="grid grid-cols-3 gap-1.5">
+        <div className="grid grid-cols-3 gap-1">
           <CounterTile
             href="/approvals"
             value={data.approvals.pending_count}
             label="Approvals"
             sub={data.approvals.stale_count > 0 ? `${data.approvals.stale_count} stale` : undefined}
-            valueColor={data.approvals.stale_count > 0 ? 'text-[#f59e0b]' : data.approvals.pending_count > 0 ? 'text-[#e5e5e5]' : 'text-[#333]'}
+            valueColor={data.approvals.stale_count > 0 ? 'text-[#f59e0b]' : data.approvals.pending_count > 0 ? 'text-[#e5e5e5]' : 'text-[#2a2a2a]'}
           />
           <CounterTile
             href="/dashboard"
             value={data.blockers.open_count}
             label="Blockers"
             sub={data.blockers.critical_count > 0 ? `${data.blockers.critical_count} crit` : undefined}
-            valueColor={data.blockers.critical_count > 0 ? 'text-red-400' : data.blockers.open_count > 0 ? 'text-[#e5e5e5]' : 'text-[#333]'}
+            valueColor={data.blockers.critical_count > 0 ? 'text-red-400' : data.blockers.open_count > 0 ? 'text-[#e5e5e5]' : 'text-[#2a2a2a]'}
           />
           <CounterTile
             href="/inbox"
             value={data.inbox.uncategorised_count}
-            label="Unread"
+            label="Inbox"
             sub={data.inbox.latest_email_at ? relativeTime(data.inbox.latest_email_at) : undefined}
-            valueColor={data.inbox.uncategorised_count > 0 ? 'text-[#f59e0b]' : 'text-[#333]'}
+            valueColor={data.inbox.uncategorised_count > 0 ? 'text-[#f59e0b]' : 'text-[#2a2a2a]'}
           />
         </div>
 
-        {/* Conditional row links */}
-        {data.suggestions.pending_count > 0 && (
-          <RowLink
-            href="/inbox#workflow-suggestions"
-            label="Workflow suggestions"
-            value={data.suggestions.pending_count}
-          />
-        )}
-
-        {data.chains.waiting_count > 0 && (
-          <RowLink
-            href="/workflows#chain-runs"
-            label="Chains waiting"
-            value={data.chains.waiting_count}
-            valueColor="text-blue-400"
-            borderColor="border-blue-500/15"
-          />
-        )}
-
-        {data.memories.active_count > 0 && (
-          <RowLink
-            href="/memory"
-            label="Operational memories"
-            value={data.memories.active_count}
-            valueColor="text-violet-400"
-            borderColor="border-violet-500/15"
-          />
-        )}
-
-        {data.notifications.unread_count > 0 && (
-          <div className="flex items-center justify-between bg-red-500/[0.04] border border-red-500/20 rounded-xl px-3 py-2">
-            <span className="text-[10px] text-[#555]">Unread alerts</span>
-            <span className="text-[11px] font-semibold text-red-400 tabular-nums">{data.notifications.unread_count}</span>
+        {/* Conditional rows */}
+        {(data.suggestions.pending_count > 0 || data.chains.waiting_count > 0 || data.memories.active_count > 0) && (
+          <div className="space-y-1">
+            {data.suggestions.pending_count > 0 && (
+              <RowLink href="/inbox#workflow-suggestions" label="Workflow suggestions" value={data.suggestions.pending_count} />
+            )}
+            {data.chains.waiting_count > 0 && (
+              <RowLink href="/workflows#chain-runs" label="Chains waiting" value={data.chains.waiting_count} valueColor="text-blue-400" borderColor="border-blue-500/15" />
+            )}
+            {data.memories.active_count > 0 && (
+              <RowLink href="/memory" label="Operational memories" value={data.memories.active_count} valueColor="text-violet-400" borderColor="border-violet-500/15" />
+            )}
           </div>
         )}
 
-        {/* Feed */}
-        <div>
-          <p className="text-[9px] font-semibold text-[#2e2e2e] uppercase tracking-[0.1em] mb-2 px-0.5">
-            Recent Events
-          </p>
+        {/* Unread alerts */}
+        {data.notifications.unread_count > 0 && (
+          <div className="flex items-center justify-between bg-red-500/[0.04] border border-red-500/14 rounded-xl px-2.5 py-1.5">
+            <div className="flex items-center gap-1.5">
+              <span className="w-1 h-1 rounded-full bg-red-500 animate-pulse" />
+              <span className="text-[9.5px] text-[#4a4a4a]">Unread alerts</span>
+            </div>
+            <span className="text-[10.5px] font-semibold text-red-400 tabular-nums">{data.notifications.unread_count}</span>
+          </div>
+        )}
 
-          {data.feed.length === 0 ? (
-            <p className="text-[10px] text-[#2a2a2a] text-center py-3">No recent events</p>
-          ) : (
-            <div className="space-y-1">
-              {data.feed.map(event => {
+        {/* Recent events */}
+        <div>
+          <SectionDivider label="Recent Events" />
+          <div className="space-y-px mt-1">
+            {data.feed.length === 0 ? (
+              <p className="text-[8.5px] text-[#1e1e1e] text-center py-2.5">No recent events</p>
+            ) : (
+              data.feed.map(event => {
                 const cfg = SEVERITY_CFG[event.severity] ?? SEVERITY_CFG.info
+                const abbr = eventCategory(event.event_type)
                 return (
                   <div
                     key={event.id}
-                    className="flex items-start gap-2 bg-[#0f0f0f] border border-[#191919] rounded-lg px-2.5 py-1.5"
+                    className="flex items-center gap-2 bg-[#0d0d0d] border border-[#181818] rounded-lg px-2 py-1.5 hover:border-[#222] transition-colors"
                   >
-                    <span className={`w-1 h-1 rounded-full mt-[5px] shrink-0 ${cfg.dot}`} />
-                    <div className="min-w-0 flex-1">
-                      <p className="text-[10px] text-[#666] truncate leading-snug">{event.title}</p>
-                      <p className="text-[9px] text-[#333] mt-0.5 tabular-nums">{relativeTime(event.created_at)}</p>
-                    </div>
+                    <div className={`w-[2px] self-stretch rounded-full shrink-0 ${cfg.barColor} opacity-70`} />
+
+                    <span className="text-[7px] text-[#2a2a2a] font-mono font-bold shrink-0 w-7">{abbr}</span>
+
+                    <p className="text-[8.5px] text-[#525252] truncate flex-1 leading-snug">{event.title}</p>
+
+                    <span className="text-[7px] text-[#1e1e1e] tabular-nums font-mono shrink-0">
+                      {relativeTime(event.created_at)}
+                    </span>
                   </div>
                 )
-              })}
-            </div>
-          )}
+              })
+            )}
+          </div>
         </div>
 
       </div>
@@ -288,14 +320,16 @@ function SidebarContent({ data, lastRefresh, onRefresh, refreshing }: {
 
 function SidebarSkeleton() {
   return (
-    <div className="flex flex-col gap-2.5 p-3 animate-pulse">
-      <div className="h-14 bg-[#151515] rounded-xl" />
-      <div className="h-[72px] bg-[#151515] rounded-xl" />
-      <div className="grid grid-cols-3 gap-1.5">
-        {[0,1,2].map(i => <div key={i} className="h-14 bg-[#151515] rounded-xl" />)}
+    <div className="flex flex-col gap-2 p-3 animate-pulse">
+      <div className="h-12 bg-[#111] rounded-xl" />
+      <div className="h-10 bg-[#111] rounded-xl" />
+      <div className="grid grid-cols-3 gap-1">
+        {[0, 1, 2].map(i => <div key={i} className="h-12 bg-[#111] rounded-xl" />)}
       </div>
-      <div className="h-8 bg-[#151515] rounded-xl" />
-      <div className="h-8 bg-[#151515] rounded-xl" />
+      <div className="h-7 bg-[#111] rounded-xl" />
+      <div className="space-y-px">
+        {[0, 1, 2, 4].map(i => <div key={i} className="h-8 bg-[#111] rounded-lg" />)}
+      </div>
     </div>
   )
 }
@@ -334,22 +368,22 @@ export default function ZOperationalSidebar() {
   }, [load])
 
   const panelContent = (
-    <div className="flex flex-col h-full border-l border-[#161616]" style={{ background: '#0b0b0b' }}>
+    <div className="flex flex-col h-full border-l border-[#131313]" style={{ background: '#0a0a0a' }}>
       {loading && !data ? (
         <>
-          <div className="flex items-center justify-between px-4 h-14 border-b border-[#161616]">
-            <div className="w-24 h-3 bg-[#1a1a1a] rounded animate-pulse" />
-            <div className="w-14 h-2 bg-[#1a1a1a] rounded animate-pulse" />
+          <div className="flex items-center justify-between px-3.5 h-14 border-b border-[#131313]">
+            <div className="w-20 h-2.5 bg-[#181818] rounded animate-pulse" />
+            <div className="w-10 h-2 bg-[#181818] rounded animate-pulse" />
           </div>
           <SidebarSkeleton />
         </>
       ) : error ? (
         <>
-          <div className="flex items-center px-4 h-14 border-b border-[#161616]">
-            <span className="text-[11px] font-semibold text-[#c0c0c0]">Z Runtime</span>
+          <div className="flex items-center px-3.5 h-14 border-b border-[#131313]">
+            <span className="text-[10px] font-semibold text-[#bbb]">Z Runtime</span>
           </div>
-          <div className="p-4">
-            <p className="text-[10px] text-red-400 text-center">⚠ {error}</p>
+          <div className="p-3">
+            <p className="text-[8.5px] text-red-400 text-center">⚠ {error}</p>
           </div>
         </>
       ) : data ? (
@@ -366,7 +400,7 @@ export default function ZOperationalSidebar() {
   return (
     <>
       {/* Desktop: fixed right sidebar */}
-      <div className="hidden lg:block fixed right-0 top-0 w-72 h-screen z-20 overflow-hidden">
+      <div className="hidden lg:block fixed right-0 top-0 w-[272px] h-screen z-20 overflow-hidden">
         {panelContent}
       </div>
 
@@ -383,7 +417,7 @@ export default function ZOperationalSidebar() {
       {open && (
         <div className="lg:hidden fixed inset-0 z-40 flex">
           <button
-            className="flex-1 bg-black/60"
+            className="flex-1 bg-black/60 backdrop-blur-sm"
             onClick={() => setOpen(false)}
             aria-label="Close sidebar"
           />
@@ -391,7 +425,7 @@ export default function ZOperationalSidebar() {
             {panelContent}
             <button
               onClick={() => setOpen(false)}
-              className="absolute top-4 left-3 text-[#525252] hover:text-[#a3a3a3] text-lg leading-none"
+              className="absolute top-4 left-3 text-[#444] hover:text-[#888] text-lg leading-none"
               aria-label="Close"
             >
               ×
