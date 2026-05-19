@@ -21,6 +21,7 @@ export async function GET() {
     pendingSuggestionsRes,
     waitingChainRunsRes,
     activeMemoriesRes,
+    unreadNotificationsRes,
   ] = await Promise.allSettled([
     db.from('scheduled_jobs')
       .select('id', { count: 'exact', head: true })
@@ -80,6 +81,11 @@ export async function GET() {
     db.from('operational_memories')
       .select('id', { count: 'exact', head: true })
       .eq('status', 'active'),
+
+    db.from('notifications')
+      .select('id', { count: 'exact', head: true })
+      .eq('read', false)
+      .eq('dismissed', false),
   ])
 
   function getCount(res: PromiseSettledResult<{ count: number | null }>): number {
@@ -95,7 +101,8 @@ export async function GET() {
   const criticalBlockers    = getCount(criticalBlockersRes as PromiseSettledResult<{ count: number | null }>)
   const pendingSuggestions  = getCount(pendingSuggestionsRes  as PromiseSettledResult<{ count: number | null }>)
   const waitingChainRuns    = getCount(waitingChainRunsRes    as PromiseSettledResult<{ count: number | null }>)
-  const activeMemories      = getCount(activeMemoriesRes      as PromiseSettledResult<{ count: number | null }>)
+  const activeMemories      = getCount(activeMemoriesRes         as PromiseSettledResult<{ count: number | null }>)
+  const unreadNotifications = getCount(unreadNotificationsRes   as PromiseSettledResult<{ count: number | null }>)
 
   const lastSuccessAt =
     lastSuccessRes.status === 'fulfilled'
@@ -178,6 +185,9 @@ export async function GET() {
     },
     memories: {
       active_count: activeMemories,
+    },
+    notifications: {
+      unread_count: unreadNotifications,
     },
     feed:  feedItems,
     focus,

@@ -478,6 +478,26 @@ export interface InboxWorkflowSuggestion {
   email_sender:      string | null
 }
 
+// ── Phase 2C Step 6 — Notifications ──────────────────────────────────────────
+
+export type NotificationSeverity = 'info' | 'warning' | 'critical'
+
+export interface Notification {
+  id:          string
+  type:        string
+  severity:    NotificationSeverity
+  title:       string
+  message:     string
+  source_type: string | null
+  source_id:   string | null
+  action_url:  string | null
+  key:         string | null
+  read:        boolean
+  dismissed:   boolean
+  metadata:    Record<string, unknown>
+  created_at:  string
+}
+
 // ── Phase 2C Step 5 — Operational Memory ─────────────────────────────────────
 
 export type MemoryType =
@@ -511,6 +531,106 @@ export interface OperationalMemory {
 }
 
 // ── Phase 2C Step 4 — Workflow Chaining ───────────────────────────────────────
+
+// ── Phase 3A — Multi-Tenant Foundation ───────────────────────────────────────
+
+export type OrgStatus       = 'active' | 'suspended' | 'archived'
+export type WorkspaceStatus = 'active' | 'archived'
+export type MemberRole      = 'owner' | 'admin' | 'operator' | 'viewer'
+
+export interface Organization {
+  id:         string
+  name:       string
+  slug:       string
+  status:     OrgStatus
+  created_at: string
+  updated_at: string
+}
+
+export interface Workspace {
+  id:              string
+  organization_id: string
+  name:            string
+  slug:            string
+  status:          WorkspaceStatus
+  created_at:      string
+  updated_at:      string
+}
+
+export interface Profile {
+  id:         string
+  email:      string
+  full_name:  string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface WorkspaceMembership {
+  id:           string
+  workspace_id: string
+  user_id:      string
+  role:         MemberRole
+  created_at:   string
+}
+
+export interface AuditLog {
+  id:           string
+  workspace_id: string | null
+  actor_id:     string | null
+  action:       string
+  target_type:  string | null
+  target_id:    string | null
+  metadata:     Record<string, unknown>
+  created_at:   string
+}
+
+export interface WorkspaceContext {
+  organization: Organization | null
+  workspace:    Pick<Workspace, 'id' | 'name' | 'slug' | 'status'>
+  role:         MemberRole
+}
+
+// ── Browser Execution Sandbox ─────────────────────────────────────────────────
+
+export type BrowserRunStatus  = 'pending' | 'running' | 'waiting_approval' | 'completed' | 'failed'
+export type BrowserRunMode    = 'visible' | 'headless'
+export type BrowserStepStatus = 'pending' | 'running' | 'completed' | 'failed' | 'skipped'
+export type BrowserActionType =
+  | 'open_url'
+  | 'screenshot'
+  | 'extract_title'
+  | 'fill_field'
+  | 'click_button'
+  | 'wait_approval'
+
+export interface BrowserExecutionRun {
+  id:                    string
+  workspace_id:          string | null
+  workflow_chain_run_id: string | null
+  status:                BrowserRunStatus
+  mode:                  BrowserRunMode
+  target_url:            string
+  task_description:      string
+  result:                Record<string, unknown> | null
+  error_message:         string | null
+  created_at:            string
+  updated_at:            string
+  steps?:                BrowserExecutionStep[]
+}
+
+export interface BrowserExecutionStep {
+  id:              string
+  run_id:          string
+  step_order:      number
+  action_type:     BrowserActionType
+  description:     string
+  status:          BrowserStepStatus
+  screenshot_path: string | null
+  metadata:        Record<string, unknown>
+  created_at:      string
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 
 export type ChainStatus = 'pending' | 'running' | 'waiting_approval' | 'completed' | 'failed'
 

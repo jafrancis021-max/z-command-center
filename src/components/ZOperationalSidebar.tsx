@@ -33,6 +33,9 @@ interface SidebarData {
   memories: {
     active_count: number
   }
+  notifications: {
+    unread_count: number
+  }
   feed: Array<{
     id: string
     event_type: string
@@ -61,195 +64,220 @@ function relativeTime(iso: string | null): string {
 }
 
 const RUNTIME_CFG = {
-  healthy:  { dot: 'bg-[#22c55e]',             text: 'text-[#22c55e]',  label: 'Healthy'  },
+  healthy:  { dot: 'bg-[#22c55e]',              text: 'text-[#22c55e]',  label: 'Healthy'  },
   degraded: { dot: 'bg-[#f59e0b] animate-pulse', text: 'text-[#f59e0b]', label: 'Degraded' },
   error:    { dot: 'bg-red-500 animate-pulse',   text: 'text-red-400',   label: 'Error'    },
 }
 
-const SEVERITY_DOT: Record<string, string> = {
-  info:     'bg-[#525252]',
-  success:  'bg-[#22c55e]',
-  warning:  'bg-[#f59e0b]',
-  critical: 'bg-red-500',
+const SEVERITY_CFG: Record<string, { dot: string; text: string }> = {
+  info:     { dot: 'bg-[#3a3a3a]', text: 'text-[#555]' },
+  success:  { dot: 'bg-[#22c55e]', text: 'text-[#22c55e]' },
+  warning:  { dot: 'bg-[#f59e0b]', text: 'text-[#f59e0b]' },
+  critical: { dot: 'bg-red-500',   text: 'text-red-400' },
 }
 
-const FOCUS_BORDER: Record<string, string> = {
-  'Runtime issue':       'border-red-500/30   bg-red-500/5',
-  'Stale approvals':     'border-[#f59e0b]/30 bg-[#f59e0b]/5',
-  'Critical blockers':   'border-red-500/30   bg-red-500/5',
-  'Inbox triage needed': 'border-blue-500/30  bg-blue-500/5',
-  'All clear':           'border-[#22c55e]/30 bg-[#22c55e]/5',
+// ── Counter tile ──────────────────────────────────────────────────────────────
+
+function CounterTile({
+  href, value, label, sub, valueColor,
+}: {
+  href: string
+  value: number
+  label: string
+  sub?: string
+  valueColor: string
+}) {
+  return (
+    <Link
+      href={href}
+      className="bg-[#111] border border-[#1e1e1e] rounded-xl p-2.5 flex flex-col items-center gap-1 hover:border-[#2a2a2a] transition-colors group"
+    >
+      <span className={`text-[17px] font-bold leading-none tabular-nums ${valueColor}`}>{value}</span>
+      <span className="text-[9px] text-[#444] group-hover:text-[#666] transition-colors text-center leading-tight">{label}</span>
+      {sub && <span className="text-[8px] text-[#333] leading-none">{sub}</span>}
+    </Link>
+  )
+}
+
+// ── Row link ──────────────────────────────────────────────────────────────────
+
+function RowLink({
+  href, label, value, valueColor = 'text-[#f59e0b]', borderColor = 'border-[#1e1e1e]',
+}: {
+  href: string
+  label: string
+  value: string | number
+  valueColor?: string
+  borderColor?: string
+}) {
+  return (
+    <Link
+      href={href}
+      className={`flex items-center justify-between bg-[#0f0f0f] border ${borderColor} rounded-xl px-3 py-2 hover:bg-[#141414] transition-colors`}
+    >
+      <span className="text-[10px] text-[#555]">{label}</span>
+      <span className={`text-[11px] font-semibold tabular-nums ${valueColor}`}>{value}</span>
+    </Link>
+  )
 }
 
 // ── Sidebar content ───────────────────────────────────────────────────────────
 
-function SidebarContent({ data, lastRefresh }: { data: SidebarData; lastRefresh: Date }) {
-  const rt     = RUNTIME_CFG[data.runtime.status]
-  const focus  = data.focus
-  const border = FOCUS_BORDER[focus.title] ?? 'border-[#2a2a2a] bg-[#111]'
+function SidebarContent({ data, lastRefresh, onRefresh, refreshing }: {
+  data: SidebarData
+  lastRefresh: Date
+  onRefresh: () => void
+  refreshing: boolean
+}) {
+  const rt    = RUNTIME_CFG[data.runtime.status]
+  const focus = data.focus
+  const focusBg =
+    focus.title === 'Runtime issue'       ? 'border-red-500/25 bg-red-500/[0.04]' :
+    focus.title === 'Stale approvals'     ? 'border-[#f59e0b]/25 bg-[#f59e0b]/[0.04]' :
+    focus.title === 'Critical blockers'   ? 'border-red-500/25 bg-red-500/[0.04]' :
+    focus.title === 'Inbox triage needed' ? 'border-blue-500/25 bg-blue-500/[0.04]' :
+    focus.title === 'All clear'           ? 'border-[#22c55e]/25 bg-[#22c55e]/[0.04]' :
+                                            'border-[#1e1e1e] bg-[#0f0f0f]'
 
   return (
     <div className="flex flex-col h-full overflow-y-auto">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-[#1a1a1a] shrink-0">
+      <div className="flex items-center justify-between px-4 h-14 border-b border-[#161616] shrink-0">
         <div className="flex items-center gap-2">
-          <div className="w-5 h-5 rounded bg-[#f59e0b] flex items-center justify-center text-black font-bold text-[10px]">
-            Z
-          </div>
-          <span className="text-xs font-semibold text-[#e5e5e5]">Runtime</span>
+          <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${rt.dot}`} />
+          <span className="text-[11px] font-semibold text-[#c0c0c0]">Z Runtime</span>
         </div>
-        <span className="text-[10px] text-[#525252]">{lastRefresh.toLocaleTimeString()}</span>
+        <div className="flex items-center gap-2">
+          <span className="text-[9px] text-[#333] tabular-nums">{lastRefresh.toLocaleTimeString()}</span>
+          <button
+            onClick={onRefresh}
+            title="Refresh"
+            className={`text-[#333] hover:text-[#666] transition-colors text-sm leading-none ${refreshing ? 'animate-spin' : ''}`}
+          >
+            ↺
+          </button>
+        </div>
       </div>
 
-      <div className="flex flex-col gap-3 p-3 grow">
+      <div className="flex flex-col gap-2.5 p-3 grow">
 
         {/* Focus block */}
         <Link
           href={focus.action_url}
-          className={`block rounded-xl border px-3 py-2.5 transition-opacity hover:opacity-80 ${border}`}
+          className={`block rounded-xl border px-3 py-2.5 transition-opacity hover:opacity-90 ${focusBg}`}
         >
-          <p className="text-[10px] text-[#737373] uppercase tracking-wider mb-1">Current focus</p>
-          <p className="text-xs font-semibold text-[#e5e5e5] leading-snug">{focus.title}</p>
-          <p className="text-[10px] text-[#737373] mt-0.5 leading-snug">{focus.reason}</p>
+          <p className="text-[9px] font-semibold text-[#444] uppercase tracking-[0.1em] mb-1">Focus</p>
+          <p className="text-[11px] font-semibold text-[#d4d4d4] leading-snug">{focus.title}</p>
+          <p className="text-[10px] text-[#555] mt-0.5 leading-snug">{focus.reason}</p>
         </Link>
 
-        {/* Runtime */}
-        <div className="bg-[#111] border border-[#1e1e1e] rounded-xl px-3 py-2.5">
-          <p className="text-[10px] text-[#525252] uppercase tracking-wider mb-2">Scheduled Jobs</p>
+        {/* Runtime status */}
+        <div className="bg-[#0f0f0f] border border-[#1e1e1e] rounded-xl px-3 py-2.5">
+          <p className="text-[9px] font-semibold text-[#333] uppercase tracking-[0.1em] mb-2">Scheduled Jobs</p>
           <div className="flex items-center justify-between mb-1.5">
             <div className="flex items-center gap-1.5">
               <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${rt.dot}`} />
-              <span className={`text-xs font-medium ${rt.text}`}>{rt.label}</span>
+              <span className={`text-[11px] font-medium ${rt.text}`}>{rt.label}</span>
             </div>
-            <span className="text-[10px] text-[#525252]">{data.runtime.active_jobs} active</span>
+            <span className="text-[9px] text-[#444] tabular-nums">{data.runtime.active_jobs} active</span>
           </div>
           {data.runtime.recent_failures > 0 && (
-            <p className="text-[10px] text-red-400">
+            <p className="text-[10px] text-red-400 mb-1">
               ⚠ {data.runtime.recent_failures} failure{data.runtime.recent_failures > 1 ? 's' : ''} today
             </p>
           )}
-          <p className="text-[10px] text-[#525252] mt-1">
-            Last success: {relativeTime(data.runtime.last_success_at)}
-          </p>
+          <p className="text-[9px] text-[#333]">Last success: {relativeTime(data.runtime.last_success_at)}</p>
         </div>
 
-        {/* Counters */}
+        {/* Counter grid */}
         <div className="grid grid-cols-3 gap-1.5">
-          <Link
+          <CounterTile
             href="/approvals"
-            className="bg-[#111] border border-[#1e1e1e] rounded-xl p-2 flex flex-col items-center gap-0.5 hover:border-[#f59e0b]/30 transition-colors group"
-          >
-            <span className={`text-base font-semibold leading-none ${
-              data.approvals.stale_count > 0 ? 'text-[#f59e0b]' :
-              data.approvals.pending_count > 0 ? 'text-[#e5e5e5]' : 'text-[#525252]'
-            }`}>
-              {data.approvals.pending_count}
-            </span>
-            <span className="text-[9px] text-[#525252] group-hover:text-[#a3a3a3] transition-colors text-center leading-tight">
-              Approvals
-            </span>
-            {data.approvals.stale_count > 0 && (
-              <span className="text-[9px] text-[#f59e0b]">{data.approvals.stale_count} stale</span>
-            )}
-          </Link>
-
-          <Link
+            value={data.approvals.pending_count}
+            label="Approvals"
+            sub={data.approvals.stale_count > 0 ? `${data.approvals.stale_count} stale` : undefined}
+            valueColor={data.approvals.stale_count > 0 ? 'text-[#f59e0b]' : data.approvals.pending_count > 0 ? 'text-[#e5e5e5]' : 'text-[#333]'}
+          />
+          <CounterTile
             href="/dashboard"
-            className="bg-[#111] border border-[#1e1e1e] rounded-xl p-2 flex flex-col items-center gap-0.5 hover:border-[#f59e0b]/30 transition-colors group"
-          >
-            <span className={`text-base font-semibold leading-none ${
-              data.blockers.critical_count > 0 ? 'text-red-400' :
-              data.blockers.open_count > 0 ? 'text-[#e5e5e5]' : 'text-[#525252]'
-            }`}>
-              {data.blockers.open_count}
-            </span>
-            <span className="text-[9px] text-[#525252] group-hover:text-[#a3a3a3] transition-colors text-center leading-tight">
-              Blockers
-            </span>
-            {data.blockers.critical_count > 0 && (
-              <span className="text-[9px] text-red-400">{data.blockers.critical_count} crit</span>
-            )}
-          </Link>
-
-          <Link
+            value={data.blockers.open_count}
+            label="Blockers"
+            sub={data.blockers.critical_count > 0 ? `${data.blockers.critical_count} crit` : undefined}
+            valueColor={data.blockers.critical_count > 0 ? 'text-red-400' : data.blockers.open_count > 0 ? 'text-[#e5e5e5]' : 'text-[#333]'}
+          />
+          <CounterTile
             href="/inbox"
-            className="bg-[#111] border border-[#1e1e1e] rounded-xl p-2 flex flex-col items-center gap-0.5 hover:border-[#f59e0b]/30 transition-colors group"
-          >
-            <span className={`text-base font-semibold leading-none ${
-              data.inbox.uncategorised_count > 0 ? 'text-[#f59e0b]' : 'text-[#525252]'
-            }`}>
-              {data.inbox.uncategorised_count}
-            </span>
-            <span className="text-[9px] text-[#525252] group-hover:text-[#a3a3a3] transition-colors text-center leading-tight">
-              Unread
-            </span>
-            {data.inbox.latest_email_at && (
-              <span className="text-[9px] text-[#525252]">
-                {relativeTime(data.inbox.latest_email_at)}
-              </span>
-            )}
-          </Link>
+            value={data.inbox.uncategorised_count}
+            label="Unread"
+            sub={data.inbox.latest_email_at ? relativeTime(data.inbox.latest_email_at) : undefined}
+            valueColor={data.inbox.uncategorised_count > 0 ? 'text-[#f59e0b]' : 'text-[#333]'}
+          />
         </div>
 
-        {/* Workflow suggestions */}
+        {/* Conditional row links */}
         {data.suggestions.pending_count > 0 && (
-          <Link
+          <RowLink
             href="/inbox#workflow-suggestions"
-            className="flex items-center justify-between bg-[#111] border border-[#1e1e1e] rounded-xl px-3 py-2 hover:border-[#f59e0b]/30 transition-colors"
-          >
-            <span className="text-[9px] text-[#737373]">Workflow suggestions</span>
-            <span className="text-xs font-semibold text-[#f59e0b]">{data.suggestions.pending_count}</span>
-          </Link>
+            label="Workflow suggestions"
+            value={data.suggestions.pending_count}
+          />
         )}
 
-        {/* Chain runs awaiting approval */}
         {data.chains.waiting_count > 0 && (
-          <Link
+          <RowLink
             href="/workflows#chain-runs"
-            className="flex items-center justify-between bg-[#111] border border-blue-500/20 rounded-xl px-3 py-2 hover:border-blue-500/40 transition-colors"
-          >
-            <span className="text-[9px] text-[#737373]">Chains waiting</span>
-            <span className="text-xs font-semibold text-blue-400">{data.chains.waiting_count}</span>
-          </Link>
+            label="Chains waiting"
+            value={data.chains.waiting_count}
+            valueColor="text-blue-400"
+            borderColor="border-blue-500/15"
+          />
         )}
 
-        {/* Operational memories */}
         {data.memories.active_count > 0 && (
-          <Link
+          <RowLink
             href="/memory"
-            className="flex items-center justify-between bg-[#111] border border-[#1e1e1e] rounded-xl px-3 py-2 hover:border-violet-500/30 transition-colors"
-          >
-            <span className="text-[9px] text-[#737373]">Operational memories</span>
-            <span className="text-xs font-semibold text-violet-400">{data.memories.active_count}</span>
-          </Link>
+            label="Operational memories"
+            value={data.memories.active_count}
+            valueColor="text-violet-400"
+            borderColor="border-violet-500/15"
+          />
         )}
 
-        {/* Feed */}
-        {data.feed.length > 0 && (
-          <div>
-            <p className="text-[10px] text-[#525252] uppercase tracking-wider mb-1.5 px-0.5">
-              Latest events
-            </p>
-            <div className="space-y-1">
-              {data.feed.map(event => (
-                <div
-                  key={event.id}
-                  className="flex items-start gap-2 bg-[#111] border border-[#1a1a1a] rounded-lg px-2.5 py-1.5"
-                >
-                  <span className={`w-1.5 h-1.5 rounded-full mt-1 shrink-0 ${SEVERITY_DOT[event.severity] ?? 'bg-[#525252]'}`} />
-                  <div className="min-w-0 flex-1">
-                    <p className="text-[10px] text-[#a3a3a3] truncate leading-snug">{event.title}</p>
-                    <p className="text-[9px] text-[#525252] mt-0.5">{relativeTime(event.created_at)}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
+        {data.notifications.unread_count > 0 && (
+          <div className="flex items-center justify-between bg-red-500/[0.04] border border-red-500/20 rounded-xl px-3 py-2">
+            <span className="text-[10px] text-[#555]">Unread alerts</span>
+            <span className="text-[11px] font-semibold text-red-400 tabular-nums">{data.notifications.unread_count}</span>
           </div>
         )}
 
-        {data.feed.length === 0 && (
-          <p className="text-[10px] text-[#525252] text-center py-2">No recent feed events</p>
-        )}
+        {/* Feed */}
+        <div>
+          <p className="text-[9px] font-semibold text-[#2e2e2e] uppercase tracking-[0.1em] mb-2 px-0.5">
+            Recent Events
+          </p>
+
+          {data.feed.length === 0 ? (
+            <p className="text-[10px] text-[#2a2a2a] text-center py-3">No recent events</p>
+          ) : (
+            <div className="space-y-1">
+              {data.feed.map(event => {
+                const cfg = SEVERITY_CFG[event.severity] ?? SEVERITY_CFG.info
+                return (
+                  <div
+                    key={event.id}
+                    className="flex items-start gap-2 bg-[#0f0f0f] border border-[#191919] rounded-lg px-2.5 py-1.5"
+                  >
+                    <span className={`w-1 h-1 rounded-full mt-[5px] shrink-0 ${cfg.dot}`} />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[10px] text-[#666] truncate leading-snug">{event.title}</p>
+                      <p className="text-[9px] text-[#333] mt-0.5 tabular-nums">{relativeTime(event.created_at)}</p>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
 
       </div>
     </div>
@@ -260,24 +288,14 @@ function SidebarContent({ data, lastRefresh }: { data: SidebarData; lastRefresh:
 
 function SidebarSkeleton() {
   return (
-    <div className="flex flex-col gap-3 p-3 animate-pulse">
-      <div className="h-16 bg-[#1a1a1a] rounded-xl" />
-      <div className="h-20 bg-[#1a1a1a] rounded-xl" />
+    <div className="flex flex-col gap-2.5 p-3 animate-pulse">
+      <div className="h-14 bg-[#151515] rounded-xl" />
+      <div className="h-[72px] bg-[#151515] rounded-xl" />
       <div className="grid grid-cols-3 gap-1.5">
-        <div className="h-14 bg-[#1a1a1a] rounded-xl" />
-        <div className="h-14 bg-[#1a1a1a] rounded-xl" />
-        <div className="h-14 bg-[#1a1a1a] rounded-xl" />
+        {[0,1,2].map(i => <div key={i} className="h-14 bg-[#151515] rounded-xl" />)}
       </div>
-    </div>
-  )
-}
-
-// ── Error state ───────────────────────────────────────────────────────────────
-
-function SidebarError({ message }: { message: string }) {
-  return (
-    <div className="p-3">
-      <p className="text-[10px] text-red-400 text-center">⚠ {message}</p>
+      <div className="h-8 bg-[#151515] rounded-xl" />
+      <div className="h-8 bg-[#151515] rounded-xl" />
     </div>
   )
 }
@@ -289,9 +307,11 @@ export default function ZOperationalSidebar() {
   const [loading, setLoading]         = useState(true)
   const [error, setError]             = useState<string | null>(null)
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date())
-  const [open, setOpen]               = useState(false)   // mobile panel
+  const [refreshing, setRefreshing]   = useState(false)
+  const [open, setOpen]               = useState(false)
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (manual = false) => {
+    if (manual) setRefreshing(true)
     try {
       const res  = await fetch('/api/operational-sidebar')
       const json = await res.json()
@@ -303,6 +323,7 @@ export default function ZOperationalSidebar() {
       setError(err instanceof Error ? err.message : 'Unknown error')
     } finally {
       setLoading(false)
+      setRefreshing(false)
     }
   }, [])
 
@@ -313,25 +334,31 @@ export default function ZOperationalSidebar() {
   }, [load])
 
   const panelContent = (
-    <div className="flex flex-col h-full bg-[#0d0d0d] border-l border-[#1a1a1a]">
+    <div className="flex flex-col h-full border-l border-[#161616]" style={{ background: '#0b0b0b' }}>
       {loading && !data ? (
         <>
-          {/* Header skeleton */}
-          <div className="flex items-center justify-between px-4 py-3 border-b border-[#1a1a1a]">
-            <div className="w-20 h-3 bg-[#1a1a1a] rounded animate-pulse" />
-            <div className="w-12 h-2 bg-[#1a1a1a] rounded animate-pulse" />
+          <div className="flex items-center justify-between px-4 h-14 border-b border-[#161616]">
+            <div className="w-24 h-3 bg-[#1a1a1a] rounded animate-pulse" />
+            <div className="w-14 h-2 bg-[#1a1a1a] rounded animate-pulse" />
           </div>
           <SidebarSkeleton />
         </>
       ) : error ? (
         <>
-          <div className="flex items-center justify-between px-4 py-3 border-b border-[#1a1a1a]">
-            <span className="text-xs font-semibold text-[#e5e5e5]">Z Runtime</span>
+          <div className="flex items-center px-4 h-14 border-b border-[#161616]">
+            <span className="text-[11px] font-semibold text-[#c0c0c0]">Z Runtime</span>
           </div>
-          <SidebarError message={error} />
+          <div className="p-4">
+            <p className="text-[10px] text-red-400 text-center">⚠ {error}</p>
+          </div>
         </>
       ) : data ? (
-        <SidebarContent data={data} lastRefresh={lastRefresh} />
+        <SidebarContent
+          data={data}
+          lastRefresh={lastRefresh}
+          onRefresh={() => void load(true)}
+          refreshing={refreshing}
+        />
       ) : null}
     </div>
   )
@@ -355,18 +382,16 @@ export default function ZOperationalSidebar() {
       {/* Mobile: overlay panel */}
       {open && (
         <div className="lg:hidden fixed inset-0 z-40 flex">
-          {/* backdrop */}
           <button
             className="flex-1 bg-black/60"
             onClick={() => setOpen(false)}
             aria-label="Close sidebar"
           />
-          {/* panel */}
           <div className="w-72 h-full overflow-hidden relative">
             {panelContent}
             <button
               onClick={() => setOpen(false)}
-              className="absolute top-3 right-3 text-[#525252] hover:text-[#a3a3a3] text-lg leading-none"
+              className="absolute top-4 left-3 text-[#525252] hover:text-[#a3a3a3] text-lg leading-none"
               aria-label="Close"
             >
               ×

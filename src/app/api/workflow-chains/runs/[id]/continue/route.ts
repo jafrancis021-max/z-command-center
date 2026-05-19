@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getAdmin } from '@/lib/supabase-server'
 import { executeNextChainStep } from '@/lib/workflow-chain-engine'
+import { auditAction } from '@/lib/audit'
 
 export const dynamic = 'force-dynamic'
 
@@ -47,6 +48,13 @@ export async function POST(
     .select('status, current_step')
     .eq('id', id)
     .single()
+
+  await auditAction(
+    'workflow_chain_run.continued',
+    'workflow_chain_run',
+    id,
+    { workflow_chain_id: r.workflow_chain_id, step_advanced_to: r.current_step + 1 },
+  )
 
   return NextResponse.json({
     ok:           true,

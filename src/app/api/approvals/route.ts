@@ -1,16 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getAdmin, logAction } from '@/lib/supabase-server'
+import { getCurrentWorkspaceId } from '@/lib/workspace-context'
 
 export async function GET(req: NextRequest) {
-  const status = req.nextUrl.searchParams.get('status') ?? 'pending'
-  const limit = parseInt(req.nextUrl.searchParams.get('limit') ?? '50')
+  const status      = req.nextUrl.searchParams.get('status') ?? 'pending'
+  const limit       = parseInt(req.nextUrl.searchParams.get('limit') ?? '50')
+  const workspaceId = await getCurrentWorkspaceId()
 
-  const { data, error } = await getAdmin()
+  let query = getAdmin()
     .from('approvals')
     .select('*')
     .eq('status', status)
     .order('created_at', { ascending: false })
     .limit(limit)
+
+  if (workspaceId) {
+    query = query.eq('workspace_id', workspaceId)
+  }
+
+  const { data, error } = await query
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json({ approvals: data ?? [] })

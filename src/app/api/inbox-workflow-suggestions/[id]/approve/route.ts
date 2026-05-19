@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getAdmin } from '@/lib/supabase-server'
 import { emitFeedEvent } from '@/lib/feed'
 import { startWorkflowChain } from '@/lib/workflow-chain-engine'
+import { auditAction } from '@/lib/audit'
 
 export const dynamic = 'force-dynamic'
 
@@ -87,6 +88,13 @@ export async function POST(
   } catch {
     // Chain start is non-critical
   }
+
+  await auditAction(
+    'inbox_workflow_suggestion.approved',
+    'inbox_workflow_suggestion',
+    id,
+    { suggestion_type: suggestion.suggestion_type, executed_actions: executedActions },
+  )
 
   return NextResponse.json({
     ok:               true,

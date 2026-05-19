@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getAdmin } from '@/lib/supabase-server'
 import { emitFeedEvent } from '@/lib/feed'
+import { auditAction } from '@/lib/audit'
 
 export const dynamic = 'force-dynamic'
 
@@ -46,6 +47,13 @@ export async function POST(
       email_id:        suggestion.email_id,
     },
   })
+
+  await auditAction(
+    'inbox_workflow_suggestion.rejected',
+    'inbox_workflow_suggestion',
+    id,
+    { suggestion_type: suggestion.suggestion_type },
+  )
 
   return NextResponse.json({ ok: true, status: 'rejected' })
 }

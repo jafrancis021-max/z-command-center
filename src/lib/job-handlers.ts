@@ -15,6 +15,7 @@ import { getActiveAccount, fetchRecentEmails } from '@/lib/gmail-client'
 import { emitFeedEvent } from '@/lib/feed'
 import { detectWorkflowIntent } from '@/lib/inbox-workflow-detector'
 import { runOperationalMemoryConsolidation } from '@/lib/operational-memory-engine'
+import { runNotificationGeneration } from '@/lib/notification-engine'
 
 export type LogFn = (
   level: 'info' | 'warn' | 'error',
@@ -472,6 +473,45 @@ const memoryCompaction: Handler = async (db, _config, log) => {
   }
 }
 
+// ── notification_scan ─────────────────────────────────────────────────────────
+
+const notificationScan: Handler = async (db, _config, log) => {
+  await log('info', 'Running notification generation scan')
+
+  try {
+    const result = await runNotificationGeneration(db)
+
+    await log('info',
+      `Scan complete: ${result.total_created} created, ${result.total_deduped} deduped`,
+      { by_generator: result.by_generator },
+    )
+
+    const actions = Object.entries(result.by_generator)
+      .filter(([, v]) => v.created > 0)
+      .map(([gen, v]) => `${gen}: ${v.created} created`)
+
+    return {
+      ok:                      true,
+      message:                 result.total_created > 0
+        ? `${result.total_created} notification${result.total_created > 1 ? 's' : ''} created, ${result.total_deduped} deduped`
+        : `No new notifications — ${result.total_deduped} conditions deduped`,
+      actions_taken:           actions,
+      next_recommended_action: result.total_created > 0
+        ? 'Check notification center for new alerts'
+        : 'All conditions within dedupe window — nothing new',
+    }
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'Unknown error'
+    await log('error', `Notification scan failed: ${msg}`)
+    return {
+      ok:                      false,
+      message:                 `Scan failed: ${msg}`,
+      actions_taken:           [],
+      next_recommended_action: 'Check DB connectivity',
+    }
+  }
+}
+
 // ── Handler registry ──────────────────────────────────────────────────────────
 
 export const handlers: Record<string, Handler> = {
@@ -483,4 +523,5 @@ export const handlers: Record<string, Handler> = {
   blocker_escalation:       blockerEscalation,
   approval_followup:        approvalFollowup,
   memory_compaction:        memoryCompaction,
+  notification_scan:        notificationScan,
 }
