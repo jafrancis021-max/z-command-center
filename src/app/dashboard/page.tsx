@@ -10,49 +10,41 @@ import NotificationCenter from '@/components/NotificationCenter'
 
 export const dynamic = 'force-dynamic'
 
-// ── Operational stat card ─────────────────────────────────────────────────────
+// ── Operational stat cell (horizontal strip) ─────────────────────────────────
 
-function StatCard({
+function StatCell({
   value,
   label,
-  sub,
-  valueColor = 'text-[#c0c0c0]',
+  valueColor = 'text-[#2e2e2e]',
   href,
   live = false,
-  barColor = '',
 }: {
   value: number | string
   label: string
-  sub?: string
   valueColor?: string
   href?: string
   live?: boolean
-  barColor?: string
 }) {
   const inner = (
-    <div className="relative bg-[#0d0d0d] border border-[#191919] rounded-2xl px-4 py-3.5 hover:border-[#252525] hover:shadow-[0_4px_20px_rgba(0,0,0,0.45)] hover:-translate-y-[1px] transition-all duration-200 group overflow-hidden">
-      {barColor && (
-        <div className={`absolute left-0 top-3 bottom-3 w-[2px] rounded-r-full ${barColor} opacity-60`} />
-      )}
-
-      {live && barColor && (
-        <span className="absolute top-3 right-3 flex items-center justify-center w-2 h-2">
-          <span className={`absolute inline-flex h-full w-full rounded-full opacity-20 animate-ping ${barColor}`} />
-          <span className={`relative inline-flex rounded-full h-1.5 w-1.5 ${barColor}`} />
-        </span>
-      )}
-
-      <p className={`text-[24px] font-bold tabular-nums leading-none ${valueColor} mb-1`}>{value}</p>
-      <p className="text-[9.5px] text-[#3a3a3a] font-medium">{label}</p>
-      {sub && <p className="text-[8px] text-[#272727] mt-0.5">{sub}</p>}
-
-      {href && (
-        <span className="absolute bottom-3 right-3 text-[10px] text-[#1e1e1e] group-hover:text-[#444] transition-colors">→</span>
-      )}
+    <div className="flex flex-col justify-center gap-1.5 px-5 py-4 flex-1 min-w-0">
+      <div className="flex items-baseline gap-2">
+        <p className={`text-[28px] font-bold tabular-nums leading-none ${valueColor}`}>{value}</p>
+        {live && (
+          <span className="relative flex items-center justify-center w-2 h-2 shrink-0 mb-0.5">
+            <span className="absolute inline-flex h-full w-full rounded-full bg-[#22c55e] opacity-25 animate-ping" />
+            <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-[#22c55e]" />
+          </span>
+        )}
+      </div>
+      <p className="text-[9px] text-[#7a7a7a] font-medium tracking-wide">{label}</p>
     </div>
   )
 
-  if (href) return <Link href={href} className="block">{inner}</Link>
+  if (href) return (
+    <Link href={href} className="flex-1 hover:bg-[#0d0d0d] transition-colors group">
+      {inner}
+    </Link>
+  )
   return inner
 }
 
@@ -77,15 +69,15 @@ function SectionHeader({
         {live && (
           <span className="w-1 h-1 rounded-full bg-[#22c55e] animate-pulse shrink-0" />
         )}
-        <h2 className="text-[10.5px] font-semibold text-[#484848] uppercase tracking-[0.09em]">{title}</h2>
+        <h2 className="text-[10.5px] font-semibold text-[#909090] uppercase tracking-[0.09em]">{title}</h2>
         {count !== undefined && (
-          <span className="text-[8px] text-[#2e2e2e] bg-[#111] border border-[#1a1a1a] px-1.5 py-0.5 rounded-full tabular-nums">
+          <span className="text-[8px] text-[#707070] bg-[#111] border border-[#1a1a1a] px-1.5 py-0.5 rounded-full tabular-nums">
             {count}
           </span>
         )}
       </div>
       <div className="flex items-center gap-3">
-        {sub && <p className="text-[9px] text-[#282828]">{sub}</p>}
+        {sub && <p className="text-[9px] text-[#6a6a6a]">{sub}</p>}
         {action}
       </div>
     </div>
@@ -114,10 +106,10 @@ function ActivityRow({
       className={`flex items-center gap-3 px-4 py-2 ${!last ? 'border-b border-[#0f0f0f]' : ''} hover:bg-[#0e0e0e] transition-colors group`}
     >
       <span className={`w-1 h-1 rounded-full shrink-0 ${statusColor}`} />
-      <span className="text-[8.5px] text-[#282828] font-mono shrink-0 w-28 truncate group-hover:text-[#3a3a3a] transition-colors">{log.action_type}</span>
-      <span className="flex-1 truncate text-[9.5px] text-[#3e3e3e]">{log.summary}</span>
-      <span className={`shrink-0 text-[7.5px] font-medium ${statusTextColor} opacity-50`}>{log.status}</span>
-      <span className="shrink-0 text-[7.5px] text-[#1e1e1e] tabular-nums font-mono">
+      <span className="text-[8.5px] text-[#9a9a9a] font-mono shrink-0 w-28 truncate group-hover:text-[#c0c0c0] transition-colors">{log.action_type}</span>
+      <span className="flex-1 truncate text-[9.5px] text-[#a8a8a8]">{log.summary}</span>
+      <span className={`shrink-0 text-[7.5px] font-medium ${statusTextColor} opacity-80`}>{log.status}</span>
+      <span className="shrink-0 text-[7.5px] text-[#6a6a6a] tabular-nums font-mono">
         {new Date(log.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
       </span>
     </div>
@@ -158,20 +150,29 @@ export default async function DashboardPage() {
             <span className="absolute inline-flex h-full w-full rounded-full bg-[#22c55e] opacity-20 animate-ping" />
             <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-[#22c55e]" />
           </span>
-          <p className="text-[10px] font-semibold text-[#333] uppercase tracking-[0.1em]">Command Center</p>
+          <p className="text-[10px] font-semibold text-[#a0a0a0] uppercase tracking-[0.1em]">Command Center</p>
         </div>
 
         <div className="w-px h-4 bg-[#1a1a1a] shrink-0" />
 
-        <div className="flex-1 flex justify-start max-w-xs">
+        <div className="flex-1 flex justify-center">
           <GlobalSearch />
         </div>
 
         <div className="flex items-center gap-2 shrink-0 ml-auto">
+          {activeProjects > 0 && (
+            <div className="flex items-center gap-1.5 text-[9px] bg-[#22c55e]/[0.06] border border-[#22c55e]/15 text-[#22c55e] px-2.5 py-1.5 rounded-xl">
+              <span className="relative flex items-center justify-center w-1.5 h-1.5">
+                <span className="absolute inline-flex h-full w-full rounded-full bg-[#22c55e] opacity-25 animate-ping" />
+                <span className="relative inline-flex rounded-full h-1 w-1 bg-[#22c55e]" />
+              </span>
+              {activeProjects} running
+            </div>
+          )}
           {pendingApprovals > 0 && (
             <Link
               href="/approvals"
-              className="flex items-center gap-1.5 text-[9.5px] bg-[#f59e0b]/[0.06] border border-[#f59e0b]/14 text-[#f59e0b] px-2.5 py-1.5 rounded-xl hover:bg-[#f59e0b]/[0.10] transition-colors"
+              className="flex items-center gap-1.5 text-[9px] bg-[#f59e0b]/[0.06] border border-[#f59e0b]/14 text-[#f59e0b] px-2.5 py-1.5 rounded-xl hover:bg-[#f59e0b]/[0.10] transition-colors"
             >
               <span className="w-1 h-1 rounded-full bg-[#f59e0b] animate-pulse" />
               {pendingApprovals} pending
@@ -200,34 +201,33 @@ export default async function DashboardPage() {
 
         {/* ── Metrics strip ─────────────────────────────────────── */}
         {!error && (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-            <StatCard
+          <div className="flex items-stretch bg-[#090909] border border-[#181818] rounded-2xl overflow-hidden divide-x divide-[#181818]">
+            <StatCell
               value={data.length}
               label="Workspaces"
-              valueColor="text-[#666]"
+              valueColor="text-[#555]"
             />
-            <StatCard
+            <StatCell
               value={activeProjects}
               label="Active"
-              sub={activeProjects > 0 ? 'Running now' : 'None running'}
-              valueColor={activeProjects > 0 ? 'text-[#22c55e]' : 'text-[#2e2e2e]'}
-              barColor={activeProjects > 0 ? 'bg-[#22c55e]' : ''}
+              valueColor={activeProjects > 0 ? 'text-[#22c55e]' : 'text-[#2a2a2a]'}
               live={activeProjects > 0}
             />
-            <StatCard
+            <StatCell
               value={pendingApprovals}
               label="Approvals"
-              sub={pendingApprovals > 0 ? 'Needs attention' : 'All clear'}
-              valueColor={pendingApprovals > 0 ? 'text-[#f59e0b]' : 'text-[#2e2e2e]'}
-              barColor={pendingApprovals > 0 ? 'bg-[#f59e0b]' : ''}
+              valueColor={pendingApprovals > 0 ? 'text-[#f59e0b]' : 'text-[#2a2a2a]'}
               href="/approvals"
             />
-            <StatCard
+            <StatCell
               value={blockedProjects}
               label="Blockers"
-              sub={blockedProjects > 0 ? 'Projects at risk' : 'No blockers'}
-              valueColor={blockedProjects > 0 ? 'text-red-400' : 'text-[#2e2e2e]'}
-              barColor={blockedProjects > 0 ? 'bg-red-500' : ''}
+              valueColor={blockedProjects > 0 ? 'text-red-400' : 'text-[#2a2a2a]'}
+            />
+            <StatCell
+              value={recentLogs.length}
+              label="Sessions"
+              valueColor="text-[#2a2a2a]"
             />
           </div>
         )}
@@ -282,7 +282,6 @@ export default async function DashboardPage() {
             {/* Live operational right panel */}
             <div className="space-y-5 min-w-0">
               <section>
-                <SectionHeader title="Live Feed" live />
                 <OperationalFeed />
               </section>
 

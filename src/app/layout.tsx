@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import './globals.css'
 import ZOperationalSidebar from '@/components/ZOperationalSidebar'
 import ZNavSidebar from '@/components/ZNavSidebar'
+import CommandPalette from '@/components/CommandPalette'
 
 export const metadata: Metadata = {
   title: 'Z Command Center',
@@ -15,6 +16,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <ZNavSidebar />
         {children}
         <ZOperationalSidebar />
+        <CommandPalette />
       </body>
     </html>
   )

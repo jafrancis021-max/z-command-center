@@ -47,7 +47,7 @@ export default function CrossProjectIntelligence() {
       <div className="flex items-center justify-between px-4 py-3 border-b border-[#1a1a1a]">
         <div>
           <h3 className="text-xs font-semibold text-[#e5e5e5]">Cross-Project Intelligence</h3>
-          <p className="text-[10px] text-[#525252] mt-0.5">Patterns, shared blockers, and knowledge transfer opportunities</p>
+          <p className="text-[10px] text-[#909090] mt-0.5">Patterns, shared blockers, and knowledge transfer opportunities</p>
         </div>
         <button
           onClick={handleAnalyze}
@@ -60,7 +60,7 @@ export default function CrossProjectIntelligence() {
 
       <div className="p-4">
         {!observations && !loading && !error && (
-          <p className="text-xs text-[#525252] text-center py-4">
+          <p className="text-xs text-[#909090] text-center py-4">
             Z will compare all projects to surface shared patterns, repeated blockers, and cross-project opportunities.
           </p>
         )}
@@ -91,11 +91,11 @@ export default function CrossProjectIntelligence() {
                   </span>
                   <p className="text-xs font-medium text-[#e5e5e5]">{obs.title}</p>
                 </div>
-                <p className="text-xs text-[#737373] leading-relaxed">{obs.body}</p>
+                <p className="text-xs text-[#a0a0a0] leading-relaxed">{obs.body}</p>
                 {obs.projects.length > 0 && (
                   <div className="flex flex-wrap gap-1 mt-2">
                     {obs.projects.map((p, j) => (
-                      <span key={j} className="text-[9px] px-1.5 py-0.5 rounded bg-[#1a1a1a] text-[#525252]">{p}</span>
+                      <span key={j} className="text-[9px] px-1.5 py-0.5 rounded bg-[#1a1a1a] text-[#7a7a7a]">{p}</span>
                     ))}
                   </div>
                 )}

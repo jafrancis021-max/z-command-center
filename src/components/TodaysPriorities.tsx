@@ -78,21 +78,23 @@ export default function TodaysPriorities({ projectIds }: Props) {
 
       {/* CTA card */}
       {!priorities && !loading && (
-        <div className="bg-gradient-to-br from-[#111] to-[#0d0d0d] border border-[#1e1e1e] rounded-xl p-5 flex items-center justify-between gap-4 hover:border-[#2a2a2a] transition-colors">
-          <div className="flex items-center gap-4 min-w-0">
-            <div className="w-9 h-9 rounded-xl bg-[#f59e0b]/10 border border-[#f59e0b]/20 flex items-center justify-center shrink-0">
-              <svg className="w-4 h-4 text-[#f59e0b]" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5">
-                <path d="M10 2l2.4 4.9 5.4.8-3.9 3.8.9 5.4L10 14.4l-4.8 2.5.9-5.4-3.9-3.8 5.4-.8L10 2z" strokeLinecap="round" strokeLinejoin="round" />
+        <div className="bg-[#0d0d0d] border border-[#1e1e1e] rounded-2xl px-5 py-4 flex items-center justify-between gap-4 hover:border-[#252525] transition-colors">
+          <div className="flex items-center gap-3.5 min-w-0">
+            <div className="w-9 h-9 rounded-xl bg-blue-500/[0.09] border border-blue-500/20 flex items-center justify-center shrink-0">
+              <svg className="w-[15px] h-[15px] text-blue-400" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5">
+                <circle cx="10" cy="10" r="7.5" />
+                <circle cx="10" cy="10" r="3" />
+                <path d="M10 2.5v2M10 15.5v2M2.5 10h2M15.5 10h2" strokeLinecap="round" />
               </svg>
             </div>
             <div className="min-w-0">
-              <h3 className="text-sm font-semibold text-[#e5e5e5] mb-0.5">Operational Intelligence</h3>
-              <p className="text-xs text-[#525252] leading-relaxed">Z analyzes all blockers, tasks, risks, and session history to surface today&apos;s priorities.</p>
+              <h3 className="text-[12.5px] font-semibold text-[#dcdcdc] leading-none mb-1">Operational Intelligence</h3>
+              <p className="text-[9.5px] text-[#a0a0a0] leading-relaxed">Z analyzes all blockers, tasks, risks, and session history to surface today&apos;s priorities.</p>
             </div>
           </div>
           <button
             onClick={handleGenerate}
-            className="shrink-0 text-xs bg-[#f59e0b] text-black font-semibold px-4 py-2.5 rounded-lg hover:bg-[#d97706] transition-colors whitespace-nowrap"
+            className="shrink-0 text-[10px] font-medium bg-[#111] border border-[#252525] text-[#a0a0a0] px-3.5 py-2 rounded-xl hover:border-[#444] hover:text-[#d0d0d0] transition-colors whitespace-nowrap"
           >
             What should I focus on?
           </button>
@@ -100,21 +102,21 @@ export default function TodaysPriorities({ projectIds }: Props) {
       )}
 
       {loading && (
-        <div className="bg-gradient-to-br from-[#111] to-[#0d0d0d] border border-[#1e1e1e] rounded-xl p-5 flex items-center gap-4">
-          <div className="w-9 h-9 rounded-xl bg-[#f59e0b]/10 border border-[#f59e0b]/20 flex items-center justify-center shrink-0">
+        <div className="bg-[#0d0d0d] border border-[#1e1e1e] rounded-2xl px-5 py-4 flex items-center gap-3.5">
+          <div className="w-9 h-9 rounded-xl bg-blue-500/[0.09] border border-blue-500/20 flex items-center justify-center shrink-0">
             <div className="flex gap-0.5">
               {[0, 1, 2].map(i => (
                 <div
                   key={i}
-                  className="w-1 h-1 rounded-full bg-[#f59e0b]/70 animate-bounce"
+                  className="w-1 h-1 rounded-full bg-blue-400/60 animate-bounce"
                   style={{ animationDelay: `${i * 0.15}s` }}
                 />
               ))}
             </div>
           </div>
           <div>
-            <p className="text-xs font-medium text-[#a3a3a3]">Analyzing operational state</p>
-            <p className="text-[10px] text-[#3a3a3a] mt-0.5">Scanning blockers, tasks, risks, and session history…</p>
+            <p className="text-[11px] font-medium text-[#c0c0c0]">Analyzing operational state</p>
+            <p className="text-[9.5px] text-[#7a7a7a] mt-0.5">Scanning blockers, tasks, risks, and session history…</p>
           </div>
         </div>
       )}
@@ -127,13 +129,13 @@ export default function TodaysPriorities({ projectIds }: Props) {
       )}
 
       {priorities && (
-        <div className="bg-[#111] border border-[#1e1e1e] rounded-xl overflow-hidden">
-          <div className="flex items-center justify-between px-4 py-3 border-b border-[#1a1a1a] bg-[#0d0d0d]">
+        <div className="bg-[#0c0c0c] border border-[#1c1c1c] rounded-2xl overflow-hidden">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-[#181818] bg-[#0a0a0a]">
             <div className="flex items-center gap-2">
               <span className="w-1.5 h-1.5 rounded-full bg-[#f59e0b] animate-pulse shrink-0" />
-              <span className="text-xs font-semibold text-[#f59e0b] tracking-wide">TODAY&apos;S PRIORITIES</span>
+              <span className="text-[10px] font-semibold text-[#f59e0b] uppercase tracking-[0.1em]">Today&apos;s Priorities</span>
               {generatedAt && (
-                <span className="text-[10px] text-[#3a3a3a] tabular-nums font-mono">
+                <span className="text-[10px] text-[#6a6a6a] tabular-nums font-mono">
                   {new Date(generatedAt).toLocaleTimeString()}
                 </span>
               )}
@@ -141,20 +143,20 @@ export default function TodaysPriorities({ projectIds }: Props) {
             <div className="flex items-center gap-3">
               <button
                 onClick={() => navigator.clipboard.writeText(priorities)}
-                className="text-[10px] text-[#3a3a3a] hover:text-[#a3a3a3] transition-colors"
+                className="text-[10px] text-[#666] hover:text-[#c0c0c0] transition-colors"
               >
                 Copy
               </button>
               <button
                 onClick={handleGenerate}
                 disabled={loading}
-                className="text-[10px] text-[#3a3a3a] hover:text-[#a3a3a3] transition-colors disabled:opacity-50"
+                className="text-[10px] text-[#666] hover:text-[#c0c0c0] transition-colors disabled:opacity-50"
               >
                 Refresh
               </button>
               <button
                 onClick={() => setPriorities(null)}
-                className="text-[10px] text-[#3a3a3a] hover:text-[#a3a3a3] transition-colors"
+                className="text-[10px] text-[#666] hover:text-[#c0c0c0] transition-colors"
               >
                 ✕
               </button>

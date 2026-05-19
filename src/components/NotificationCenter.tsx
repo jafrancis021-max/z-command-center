@@ -63,12 +63,12 @@ function NotifRow({
             ×
           </button>
         </div>
-        <p className="text-[10px] text-[#525252] mt-0.5 leading-snug line-clamp-2">{n.message}</p>
+        <p className="text-[10px] text-[#909090] mt-0.5 leading-snug line-clamp-2">{n.message}</p>
         <div className="flex items-center gap-2 mt-1.5">
           <span className={`text-[9px] px-1.5 py-0.5 rounded border ${cfg.badge}`}>
             {n.severity}
           </span>
-          <span className="text-[9px] text-[#3a3a3a] tabular-nums">{relativeTime(n.created_at)}</span>
+          <span className="text-[9px] text-[#6a6a6a] tabular-nums">{relativeTime(n.created_at)}</span>
           {n.action_url && (
             <Link
               href={n.action_url}

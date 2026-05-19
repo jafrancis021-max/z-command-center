@@ -95,10 +95,20 @@ function BrowserIcon() {
   )
 }
 
+function TimelineIcon() {
+  return (
+    <svg className="w-[15px] h-[15px]" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6">
+      <circle cx="10" cy="10" r="7.5" />
+      <path d="M10 5.5V10l3 2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
+}
+
 // ── Nav data ──────────────────────────────────────────────────────────────────
 
 const NAV_PRIMARY = [
   { href: '/dashboard',    label: 'Dashboard',    Icon: GridIcon },
+  { href: '/timeline',     label: 'Timeline',     Icon: TimelineIcon },
   { href: '/inbox',        label: 'Inbox',        Icon: InboxIcon },
   { href: '/workflows',    label: 'Workflows',    Icon: WorkflowIcon },
   { href: '/approvals',    label: 'Approvals',    Icon: CheckIcon },
@@ -122,7 +132,7 @@ const NAV_SPORTS = [
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
-    <p className="text-[9px] font-semibold text-[#2e2e2e] uppercase tracking-[0.12em] px-3 mb-1.5 mt-0.5">
+    <p className="text-[9px] font-semibold text-[#606060] uppercase tracking-[0.12em] px-3 mb-1.5 mt-0.5">
       {children}
     </p>
   )
@@ -148,14 +158,14 @@ function NavItem({
       href={href}
       className={`group relative flex items-center gap-2.5 px-3 py-[7px] rounded-lg text-[11px] font-medium transition-all ${
         active
-          ? 'bg-[#f59e0b]/[0.08] text-[#f5a623]'
-          : 'text-[#4a4a4a] hover:text-[#888] hover:bg-[#141414]'
+          ? 'bg-blue-500/[0.08] text-blue-400'
+          : 'text-[#888] hover:text-[#bbb] hover:bg-[#141414]'
       }`}
     >
       {active && (
-        <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[2px] h-5 bg-[#f59e0b] rounded-r-full" />
+        <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[2px] h-5 bg-blue-500 rounded-r-full" />
       )}
-      <span className={`shrink-0 transition-colors ${active ? 'text-[#f59e0b]' : 'text-[#404040] group-hover:text-[#666]'}`}>
+      <span className={`shrink-0 transition-colors ${active ? 'text-blue-400' : 'text-[#606060] group-hover:text-[#888]'}`}>
         <Icon />
       </span>
       <span className="flex-1 truncate">{label}</span>
@@ -165,7 +175,7 @@ function NavItem({
         </span>
       )}
       {badge && active && (
-        <span className="shrink-0 text-[8px] font-semibold text-[#f59e0b] bg-[#f59e0b]/10 border border-[#f59e0b]/20 px-1.5 py-0.5 rounded leading-none tracking-wide">
+        <span className="shrink-0 text-[8px] font-semibold text-blue-400 bg-blue-500/10 border border-blue-400/20 px-1.5 py-0.5 rounded leading-none tracking-wide">
           {badge}
         </span>
       )}
@@ -185,14 +195,14 @@ function SidebarContent({ pathname, workspaceName }: { pathname: string; workspa
     <div className="flex flex-col h-full" style={{ background: '#0b0b0b', borderRight: '1px solid #161616' }}>
       {/* Logo / brand */}
       <div className="flex items-center gap-3 px-4 h-14 border-b border-[#161616] shrink-0">
-        <div className="w-7 h-7 rounded-lg bg-[#f59e0b] flex items-center justify-center text-black font-bold text-[13px] shrink-0 shadow-[0_0_12px_rgba(245,158,11,0.3)]">
+        <div className="w-7 h-7 rounded-lg bg-[#3B82F6] flex items-center justify-center text-white font-bold text-[13px] shrink-0 shadow-[0_0_12px_rgba(59,130,246,0.3)]">
           Z
         </div>
         <div className="min-w-0">
           <p className="text-[11px] font-semibold text-[#d4d4d4] leading-none truncate">Command Center</p>
           <div className="flex items-center gap-1.5 mt-[3px]">
             <span className="w-1 h-1 rounded-full bg-[#22c55e] animate-pulse shrink-0" />
-            <p className="text-[9px] text-[#333]">Operational</p>
+            <p className="text-[9px] text-[#505050]">Operational</p>
           </div>
         </div>
       </div>
@@ -234,18 +244,21 @@ function SidebarContent({ pathname, workspaceName }: { pathname: string; workspa
         </div>
       </nav>
 
-      {/* Footer */}
+      {/* Footer — user profile */}
       <div className="px-3 py-3 border-t border-[#161616] shrink-0">
-        {workspaceName && (
-          <p className="text-[9px] text-[#333] truncate mb-2 px-1" title={workspaceName}>
-            {workspaceName}
-          </p>
-        )}
-        <div className="flex items-center justify-between px-1">
-          <span className="text-[9px] text-[#2a2a2a] font-mono">v1.6</span>
-          <div className="flex items-center gap-1.5">
-            <span className="w-1 h-1 rounded-full bg-[#22c55e]" />
-            <span className="text-[9px] text-[#333]">Shadow Mode</span>
+        <div className="flex items-center gap-2.5">
+          <div className="w-7 h-7 rounded-full bg-[#161616] border border-[#242424] flex items-center justify-center text-[10px] font-semibold text-[#444] shrink-0">
+            Z
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-[10px] font-medium text-[#909090] truncate leading-none">
+              {workspaceName ?? 'Command Center'}
+            </p>
+            <div className="flex items-center gap-1.5 mt-1">
+              <span className="w-1 h-1 rounded-full bg-[#22c55e] shrink-0" />
+              <span className="text-[8px] text-[#555]">Operational</span>
+              <span className="text-[8px] text-[#3a3a3a] font-mono ml-auto">v1.6</span>
+            </div>
           </div>
         </div>
       </div>
@@ -279,7 +292,7 @@ export default function ZNavSidebar() {
       {/* Mobile: floating nav button */}
       <button
         onClick={() => setMobileOpen(true)}
-        className="lg:hidden fixed bottom-4 left-4 z-30 w-10 h-10 rounded-xl bg-[#0d0d0d] border border-[#2a2a2a] text-[#f59e0b] font-bold text-sm flex items-center justify-center shadow-xl"
+        className="lg:hidden fixed bottom-4 left-4 z-30 w-10 h-10 rounded-xl bg-[#0d0d0d] border border-[#2a2a2a] text-blue-400 font-bold text-sm flex items-center justify-center shadow-xl"
         aria-label="Open navigation"
       >
         Z

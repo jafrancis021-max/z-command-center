@@ -3,6 +3,9 @@
 :root {
   --background: #0a0a0a;
   --foreground: #e5e5e5;
+  --blue-op: #3B82F6;
+  --violet-op: #7C3AED;
+  --green-op: #10B981;
 }
 
 body {
@@ -17,6 +20,7 @@ body {
 ::-webkit-scrollbar-thumb { background: #252525; border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: #333; }
 
+/* ── Prose ─────────────────────────────────────────────────────────────────── */
 .z-prose h1, .z-prose h2, .z-prose h3 { color: #f59e0b; margin: 0.75em 0 0.25em; font-weight: 600; }
 .z-prose h1 { font-size: 1.1rem; }
 .z-prose h2 { font-size: 1rem; }
@@ -29,3 +33,27 @@ body {
 .z-prose pre { background: #111; border: 1px solid #222; border-radius: 6px; padding: 0.75em 1em; margin: 0.5em 0; overflow-x: auto; }
 .z-prose pre code { background: none; border: none; padding: 0; color: #e5e5e5; }
 .z-prose blockquote { border-left: 3px solid #f59e0b; margin: 0.5em 0; padding-left: 0.75em; color: #a3a3a3; }
+
+/* ── Command palette entry animation ───────────────────────────────────────── */
+@keyframes cmd-enter {
+  from { opacity: 0; transform: scale(0.97) translateY(-6px); }
+  to   { opacity: 1; transform: scale(1)    translateY(0);    }
+}
+.animate-cmd-enter { animation: cmd-enter 0.14s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+
+/* ── Feed item entry ───────────────────────────────────────────────────────── */
+@keyframes feed-in {
+  from { opacity: 0; transform: translateY(3px); }
+  to   { opacity: 1; transform: translateY(0);   }
+}
+.animate-feed-in { animation: feed-in 0.18s ease-out forwards; }
+
+/* ── Operational heartbeat (slower ping for runtime indicators) ────────────── */
+@keyframes op-pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.35; }
+}
+.animate-op-pulse { animation: op-pulse 2.5s ease-in-out infinite; }
+
+/* ── Number count transition ────────────────────────────────────────────────── */
+.tabular-nums { font-variant-numeric: tabular-nums; }

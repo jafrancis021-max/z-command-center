@@ -109,11 +109,11 @@ function CounterTile({
   return (
     <Link
       href={href}
-      className="bg-[#0e0e0e] border border-[#1c1c1c] rounded-xl p-2 flex flex-col items-center gap-0.5 hover:border-[#282828] hover:bg-[#111] transition-all group"
+      className="bg-[#0d0d0d] border border-[#1c1c1c] rounded-xl px-3 py-2.5 flex flex-col gap-0.5 hover:border-[#282828] hover:bg-[#111] transition-all group"
     >
-      <span className={`text-[17px] font-bold leading-none tabular-nums ${valueColor}`}>{value}</span>
-      <span className="text-[7.5px] text-[#333] group-hover:text-[#555] transition-colors text-center leading-tight mt-0.5">{label}</span>
-      {sub && <span className="text-[7px] text-[#252525] leading-none">{sub}</span>}
+      <span className={`text-[22px] font-bold leading-none tabular-nums ${valueColor}`}>{value}</span>
+      <span className="text-[8px] text-[#888] group-hover:text-[#aaa] transition-colors leading-tight mt-1">{label}</span>
+      {sub && <span className="text-[7px] text-[#666] leading-none mt-0.5">{sub}</span>}
     </Link>
   )
 }
@@ -134,7 +134,7 @@ function RowLink({
       href={href}
       className={`flex items-center justify-between bg-[#0e0e0e] border ${borderColor} rounded-xl px-2.5 py-1.5 hover:bg-[#121212] transition-colors`}
     >
-      <span className="text-[9.5px] text-[#444]">{label}</span>
+      <span className="text-[9.5px] text-[#a0a0a0]">{label}</span>
       <span className={`text-[10.5px] font-semibold tabular-nums ${valueColor}`}>{value}</span>
     </Link>
   )
@@ -145,8 +145,8 @@ function RowLink({
 function SectionDivider({ label }: { label: string }) {
   return (
     <div className="flex items-center gap-2 py-0.5">
-      <span className="text-[7.5px] text-[#1e1e1e] uppercase tracking-[0.12em] font-semibold shrink-0">{label}</span>
-      <div className="flex-1 h-px bg-[#141414]" />
+      <span className="text-[7.5px] text-[#686868] uppercase tracking-[0.12em] font-semibold shrink-0">{label}</span>
+      <div className="flex-1 h-px bg-[#1c1c1c]" />
     </div>
   )
 }
@@ -192,7 +192,7 @@ function SidebarContent({ data, lastRefresh, onRefresh, refreshing }: {
           <span className={`text-[7.5px] font-medium ${rt.text}`}>{rt.label}</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <span className="text-[7.5px] text-[#252525] tabular-nums">{lastRefresh.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+          <span className="text-[7.5px] text-[#6a6a6a] tabular-nums">{lastRefresh.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
           <button
             onClick={onRefresh}
             title="Refresh"
@@ -210,9 +210,9 @@ function SidebarContent({ data, lastRefresh, onRefresh, refreshing }: {
           href={focus.action_url}
           className={`block rounded-xl border px-3 py-2 transition-opacity hover:opacity-90 ${focusBg}`}
         >
-          <p className="text-[7.5px] font-semibold text-[#2e2e2e] uppercase tracking-[0.12em] mb-0.5">Focus</p>
+          <p className="text-[7.5px] font-semibold text-[#707070] uppercase tracking-[0.12em] mb-0.5">Focus</p>
           <p className={`text-[11px] font-semibold leading-snug ${focusTextColor}`}>{focus.title}</p>
-          <p className="text-[8.5px] text-[#444] mt-0.5 leading-snug">{focus.reason}</p>
+          <p className="text-[8.5px] text-[#909090] mt-0.5 leading-snug">{focus.reason}</p>
         </Link>
 
         {/* Runtime status */}
@@ -223,14 +223,14 @@ function SidebarContent({ data, lastRefresh, onRefresh, refreshing }: {
             {data.runtime.recent_failures > 0 ? (
               <span className="text-[8.5px] text-red-400">⚠ {data.runtime.recent_failures} failed</span>
             ) : (
-              <span className="text-[8.5px] text-[#252525]">no failures</span>
+              <span className="text-[8.5px] text-[#6a6a6a]">no failures</span>
             )}
           </div>
-          <p className="text-[7.5px] text-[#252525] mt-0.5">Success: {relativeTime(data.runtime.last_success_at)}</p>
+          <p className="text-[7.5px] text-[#6a6a6a] mt-0.5">Success: {relativeTime(data.runtime.last_success_at)}</p>
         </div>
 
-        {/* Counter grid */}
-        <div className="grid grid-cols-3 gap-1">
+        {/* Counter grid — 2-col */}
+        <div className="grid grid-cols-2 gap-1.5">
           <CounterTile
             href="/approvals"
             value={data.approvals.pending_count}
@@ -252,19 +252,22 @@ function SidebarContent({ data, lastRefresh, onRefresh, refreshing }: {
             sub={data.inbox.latest_email_at ? relativeTime(data.inbox.latest_email_at) : undefined}
             valueColor={data.inbox.uncategorised_count > 0 ? 'text-[#f59e0b]' : 'text-[#2a2a2a]'}
           />
+          <CounterTile
+            href="/memory"
+            value={data.memories.active_count}
+            label="Memories"
+            valueColor={data.memories.active_count > 0 ? 'text-violet-400' : 'text-[#2a2a2a]'}
+          />
         </div>
 
         {/* Conditional rows */}
-        {(data.suggestions.pending_count > 0 || data.chains.waiting_count > 0 || data.memories.active_count > 0) && (
+        {(data.suggestions.pending_count > 0 || data.chains.waiting_count > 0) && (
           <div className="space-y-1">
             {data.suggestions.pending_count > 0 && (
               <RowLink href="/inbox#workflow-suggestions" label="Workflow suggestions" value={data.suggestions.pending_count} />
             )}
             {data.chains.waiting_count > 0 && (
               <RowLink href="/workflows#chain-runs" label="Chains waiting" value={data.chains.waiting_count} valueColor="text-blue-400" borderColor="border-blue-500/15" />
-            )}
-            {data.memories.active_count > 0 && (
-              <RowLink href="/memory" label="Operational memories" value={data.memories.active_count} valueColor="text-violet-400" borderColor="border-violet-500/15" />
             )}
           </div>
         )}
@@ -274,7 +277,7 @@ function SidebarContent({ data, lastRefresh, onRefresh, refreshing }: {
           <div className="flex items-center justify-between bg-red-500/[0.04] border border-red-500/14 rounded-xl px-2.5 py-1.5">
             <div className="flex items-center gap-1.5">
               <span className="w-1 h-1 rounded-full bg-red-500 animate-pulse" />
-              <span className="text-[9.5px] text-[#4a4a4a]">Unread alerts</span>
+              <span className="text-[9.5px] text-[#a0a0a0]">Unread alerts</span>
             </div>
             <span className="text-[10.5px] font-semibold text-red-400 tabular-nums">{data.notifications.unread_count}</span>
           </div>
@@ -297,11 +300,11 @@ function SidebarContent({ data, lastRefresh, onRefresh, refreshing }: {
                   >
                     <div className={`w-[2px] self-stretch rounded-full shrink-0 ${cfg.barColor} opacity-70`} />
 
-                    <span className="text-[7px] text-[#2a2a2a] font-mono font-bold shrink-0 w-7">{abbr}</span>
+                    <span className="text-[7px] text-[#7a7a7a] font-mono font-bold shrink-0 w-7">{abbr}</span>
 
-                    <p className="text-[8.5px] text-[#525252] truncate flex-1 leading-snug">{event.title}</p>
+                    <p className="text-[8.5px] text-[#b0b0b0] truncate flex-1 leading-snug">{event.title}</p>
 
-                    <span className="text-[7px] text-[#1e1e1e] tabular-nums font-mono shrink-0">
+                    <span className="text-[7px] text-[#6a6a6a] tabular-nums font-mono shrink-0">
                       {relativeTime(event.created_at)}
                     </span>
                   </div>
@@ -407,7 +410,7 @@ export default function ZOperationalSidebar() {
       {/* Mobile: floating button */}
       <button
         onClick={() => setOpen(true)}
-        className="lg:hidden fixed bottom-4 right-4 z-30 w-10 h-10 rounded-xl bg-[#f59e0b] text-black font-bold text-sm flex items-center justify-center shadow-lg"
+        className="lg:hidden fixed bottom-4 right-4 z-30 w-10 h-10 rounded-xl bg-[#0d0d0d] border border-[#2a2a2a] text-[#22c55e] font-bold text-sm flex items-center justify-center shadow-xl"
         aria-label="Open Z Runtime"
       >
         Z

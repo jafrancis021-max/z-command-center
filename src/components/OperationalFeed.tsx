@@ -75,16 +75,16 @@ function groupEvents(events: FeedEvent[]): { label: string; events: FeedEvent[] 
 
 function FeedSkeleton() {
   return (
-    <div className="space-y-px animate-pulse">
+    <div className="bg-[#090909] border border-[#191919] rounded-2xl overflow-hidden animate-pulse">
       {[88, 72, 95, 65, 80].map((w, i) => (
-        <div key={i} className="flex items-center gap-2 bg-[#0c0c0c] border border-[#151515] rounded-xl px-3 py-2">
-          <div className="w-[2px] self-stretch bg-[#1a1a1a] rounded-full shrink-0" />
-          <div className="w-4 h-4 rounded bg-[#161616] shrink-0" />
+        <div key={i} className="flex items-center gap-2 px-2.5 py-2 border-b border-[#0f0f0f] last:border-b-0">
+          <div className="w-[2px] h-6 bg-[#181818] rounded-full shrink-0" />
+          <div className="w-7 h-4 rounded bg-[#141414] shrink-0" />
           <div className="flex-1 space-y-1">
-            <div className="h-2 bg-[#161616] rounded" style={{ width: `${w}%` }} />
-            <div className="h-1.5 w-1/5 bg-[#141414] rounded" />
+            <div className="h-2 bg-[#141414] rounded" style={{ width: `${w}%` }} />
+            <div className="h-1.5 w-1/5 bg-[#111] rounded" />
           </div>
-          <div className="w-4 h-1.5 bg-[#141414] rounded shrink-0" />
+          <div className="w-5 h-1.5 bg-[#111] rounded shrink-0" />
         </div>
       ))}
     </div>
@@ -98,33 +98,33 @@ function FeedRow({ ev }: { ev: FeedEvent }) {
   const cat = eventCategory(ev.event_type)
 
   return (
-    <div className="flex items-center gap-2 bg-[#0b0b0b] border border-[#161616] rounded-xl px-2.5 py-2 hover:border-[#1e1e1e] hover:bg-[#0e0e0e] transition-all duration-100 group">
+    <div className="flex items-center gap-2 px-2.5 py-[7px] border-b border-[#0f0f0f] last:border-b-0 hover:bg-[#0c0c0c] transition-colors duration-75 group">
       {/* Severity bar */}
       <div className={`w-[2px] self-stretch rounded-full shrink-0 ${sev.bar}`} />
 
       {/* Category abbr tile */}
-      <div className={`w-8 h-5 rounded flex items-center justify-center shrink-0 text-[7.5px] font-bold tracking-wide border border-[#181818] ${sev.tile}`}>
+      <div className={`w-7 h-4 rounded flex items-center justify-center shrink-0 text-[7px] font-bold tracking-wide ${sev.tile}`}>
         {cat.abbr}
       </div>
 
       {/* Content */}
       <div className="flex-1 min-w-0">
-        <p className="text-[9.5px] text-[#6a6a6a] group-hover:text-[#888] truncate leading-snug transition-colors">
+        <p className="text-[9.5px] text-[#c0c0c0] group-hover:text-[#e0e0e0] truncate leading-snug transition-colors">
           {ev.title}
         </p>
-        <div className="flex items-center gap-1 mt-0.5">
+        <div className="flex items-center gap-1 mt-px">
           <span className={`text-[7.5px] font-semibold uppercase tracking-wide ${cat.color}`}>{cat.label}</span>
           {ev.project_name && (
             <>
-              <span className="text-[#1e1e1e]">·</span>
-              <span className="text-[7.5px] text-[#2a2a2a] truncate">{ev.project_name}</span>
+              <span className="text-[#555]">·</span>
+              <span className="text-[7.5px] text-[#7a7a7a] truncate">{ev.project_name}</span>
             </>
           )}
         </div>
       </div>
 
       {/* Timestamp */}
-      <span className="shrink-0 text-[7.5px] text-[#252525] tabular-nums font-mono">
+      <span className="shrink-0 text-[7.5px] text-[#7a7a7a] tabular-nums font-mono">
         {relativeTime(ev.created_at)}
       </span>
     </div>
@@ -135,10 +135,8 @@ function FeedRow({ ev }: { ev: FeedEvent }) {
 
 function TimeGroup({ label }: { label: string }) {
   return (
-    <div className="flex items-center gap-2 py-1">
-      <div className="flex-1 h-px bg-[#131313]" />
-      <span className="text-[7.5px] text-[#252525] uppercase tracking-[0.12em] font-medium shrink-0">{label}</span>
-      <div className="flex-1 h-px bg-[#131313]" />
+    <div className="flex items-center gap-2 px-2.5 py-1 bg-[#0b0b0b] border-b border-[#0f0f0f]">
+      <span className="text-[7px] text-[#666] uppercase tracking-[0.14em] font-semibold">{label}</span>
     </div>
   )
 }
@@ -169,11 +167,13 @@ export default function OperationalFeed() {
 
   return (
     <div>
-      {/* Filter bar */}
+      {/* Section header with filters inline */}
       <div className="flex items-center justify-between mb-2.5">
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-2">
+          <span className="w-1 h-1 rounded-full bg-[#22c55e] animate-pulse shrink-0" />
+          <h2 className="text-[10.5px] font-semibold text-[#909090] uppercase tracking-[0.09em]">Live Feed</h2>
           {!loading && events.length > 0 && (
-            <span className="text-[7.5px] text-[#252525] bg-[#0f0f0f] border border-[#191919] px-1.5 py-0.5 rounded-full tabular-nums">
+            <span className="text-[8px] text-[#707070] bg-[#111] border border-[#1a1a1a] px-1.5 py-0.5 rounded-full tabular-nums">
               {events.length}
             </span>
           )}
@@ -184,8 +184,8 @@ export default function OperationalFeed() {
             onClick={() => setFilter('all')}
             className={`text-[8.5px] px-2 py-0.5 rounded-lg transition-colors ${
               filter === 'all'
-                ? 'bg-[#1a1a1a] text-[#666] border border-[#242424]'
-                : 'text-[#2a2a2a] hover:text-[#555]'
+                ? 'bg-[#1a1a1a] text-[#aaa] border border-[#242424]'
+                : 'text-[#6a6a6a] hover:text-[#aaa]'
             }`}
           >
             All
@@ -199,7 +199,7 @@ export default function OperationalFeed() {
                 className={`text-[8.5px] px-2 py-0.5 rounded-lg capitalize transition-colors ${
                   filter === s
                     ? `${cfg.badge} border`
-                    : 'text-[#2a2a2a] hover:text-[#555]'
+                    : 'text-[#6a6a6a] hover:text-[#aaa]'
                 }`}
               >
                 {cfg.label}
@@ -208,7 +208,7 @@ export default function OperationalFeed() {
           })}
           <button
             onClick={() => void load(true)}
-            className={`ml-1 text-[10px] text-[#252525] hover:text-[#555] transition-colors ${refreshing ? 'animate-spin' : ''}`}
+            className={`ml-1 text-[10px] text-[#3a3a3a] hover:text-[#666] transition-colors ${refreshing ? 'animate-spin' : ''}`}
             title="Refresh"
           >
             ↺
@@ -216,29 +216,25 @@ export default function OperationalFeed() {
         </div>
       </div>
 
-      {/* Content */}
+      {/* Content panel */}
       {loading ? (
         <FeedSkeleton />
       ) : events.length === 0 ? (
-        <div className="text-center py-10 bg-[#0a0a0a] border border-[#151515] rounded-2xl">
-          <div className="w-8 h-8 rounded-xl bg-[#111] border border-[#1a1a1a] flex items-center justify-center mx-auto mb-2.5">
-            <span className="text-[#252525] text-xs">·</span>
-          </div>
-          <p className="text-[9.5px] text-[#3a3a3a]">No feed events yet.</p>
+        <div className="text-center py-10 bg-[#090909] border border-[#191919] rounded-2xl">
+          <span className="text-[#252525] text-sm">·</span>
+          <p className="text-[9.5px] text-[#333] mt-2">No feed events yet.</p>
         </div>
       ) : showGroups ? (
-        <div className="space-y-px">
+        <div className="bg-[#090909] border border-[#191919] rounded-2xl overflow-hidden">
           {groups.map(group => (
             <div key={group.label}>
               <TimeGroup label={group.label} />
-              <div className="space-y-px">
-                {group.events.map(ev => <FeedRow key={ev.id} ev={ev} />)}
-              </div>
+              {group.events.map(ev => <FeedRow key={ev.id} ev={ev} />)}
             </div>
           ))}
         </div>
       ) : (
-        <div className="space-y-px">
+        <div className="bg-[#090909] border border-[#191919] rounded-2xl overflow-hidden">
           {events.map(ev => <FeedRow key={ev.id} ev={ev} />)}
         </div>
       )}

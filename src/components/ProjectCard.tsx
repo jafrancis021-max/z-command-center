@@ -35,7 +35,7 @@ const ACCENT_PALETTE = [
     border:      'border-violet-500/20',
     hoverBorder: 'hover:border-violet-500/35',
     bar:         'bg-violet-500',
-    glow:        'shadow-[0_0_24px_rgba(139,92,246,0.09)]',
+    glow:        'shadow-[0_0_24px_rgba(139,92,246,0.12)]',
     ring:        'border-violet-500/20',
   },
   {
@@ -44,7 +44,7 @@ const ACCENT_PALETTE = [
     border:      'border-blue-500/20',
     hoverBorder: 'hover:border-blue-500/35',
     bar:         'bg-blue-500',
-    glow:        'shadow-[0_0_24px_rgba(59,130,246,0.09)]',
+    glow:        'shadow-[0_0_24px_rgba(59,130,246,0.12)]',
     ring:        'border-blue-500/20',
   },
   {
@@ -53,7 +53,7 @@ const ACCENT_PALETTE = [
     border:      'border-emerald-500/20',
     hoverBorder: 'hover:border-emerald-500/35',
     bar:         'bg-emerald-500',
-    glow:        'shadow-[0_0_24px_rgba(16,185,129,0.09)]',
+    glow:        'shadow-[0_0_24px_rgba(16,185,129,0.12)]',
     ring:        'border-emerald-500/20',
   },
   {
@@ -62,7 +62,7 @@ const ACCENT_PALETTE = [
     border:      'border-amber-500/20',
     hoverBorder: 'hover:border-amber-500/35',
     bar:         'bg-amber-500',
-    glow:        'shadow-[0_0_24px_rgba(245,158,11,0.09)]',
+    glow:        'shadow-[0_0_24px_rgba(245,158,11,0.12)]',
     ring:        'border-amber-500/20',
   },
   {
@@ -71,7 +71,7 @@ const ACCENT_PALETTE = [
     border:      'border-rose-500/20',
     hoverBorder: 'hover:border-rose-500/35',
     bar:         'bg-rose-500',
-    glow:        'shadow-[0_0_24px_rgba(244,63,94,0.09)]',
+    glow:        'shadow-[0_0_24px_rgba(244,63,94,0.12)]',
     ring:        'border-rose-500/20',
   },
   {
@@ -80,7 +80,7 @@ const ACCENT_PALETTE = [
     border:      'border-cyan-500/20',
     hoverBorder: 'hover:border-cyan-500/35',
     bar:         'bg-cyan-500',
-    glow:        'shadow-[0_0_24px_rgba(6,182,212,0.09)]',
+    glow:        'shadow-[0_0_24px_rgba(6,182,212,0.12)]',
     ring:        'border-cyan-500/20',
   },
 ]
@@ -144,11 +144,11 @@ export default function ProjectCard({ project, latestTask, latestDecision }: Pro
       hover:-translate-y-[1px]
       ${isActive ? accent.glow : ''}
     `}>
-      {/* Accent top bar */}
-      <div className={`h-[2px] w-full ${accent.bar} ${isActive ? 'opacity-65' : 'opacity-25'}`} />
+      {/* Left accent bar */}
+      <div className={`absolute left-0 inset-y-0 w-[2px] ${accent.bar} ${isActive ? 'opacity-55' : 'opacity-20'}`} />
 
       {/* ── Header ──────────────────────────────────────────────── */}
-      <div className="flex items-start gap-3 px-4 pt-3.5 pb-3">
+      <div className="flex items-start gap-3 px-4 pt-3 pb-2.5">
         {/* Workspace identity tile */}
         <div className="relative shrink-0 mt-0.5">
           {isActive && (
@@ -168,12 +168,12 @@ export default function ProjectCard({ project, latestTask, latestDecision }: Pro
 
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-0.5">
-            <h3 className="font-semibold text-[#ccc] text-[12px] leading-tight truncate flex-1">{project.name}</h3>
+            <h3 className="font-semibold text-[#e0e0e0] text-[12px] leading-tight truncate flex-1">{project.name}</h3>
             <StatusPill status={project.status} size="xs" />
           </div>
 
           {project.description && (
-            <p className="text-[9.5px] text-[#3e3e3e] line-clamp-1 leading-relaxed">{project.description}</p>
+            <p className="text-[9.5px] text-[#909090] line-clamp-1 leading-relaxed">{project.description}</p>
           )}
 
           {/* Compact metrics row */}
@@ -200,7 +200,7 @@ export default function ProjectCard({ project, latestTask, latestDecision }: Pro
 
       {/* ── Current state / runtime ─────────────────────────────── */}
       {(project.current_phase || project.current_status) && (
-        <div className="px-4 pb-3">
+        <div className="px-4 pb-2.5">
           <div className={`flex items-start gap-2.5 rounded-xl px-3 py-2 border ${
             isActive
               ? `${accent.bg} ${accent.border}`
@@ -211,12 +211,12 @@ export default function ProjectCard({ project, latestTask, latestDecision }: Pro
             )}
             <div className="min-w-0 flex-1">
               {project.current_phase && (
-                <p className={`text-[7.5px] font-semibold uppercase tracking-[0.12em] mb-0.5 ${isActive ? accent.text : 'text-[#2e2e2e]'}`}>
+                <p className={`text-[7.5px] font-semibold uppercase tracking-[0.12em] mb-0.5 ${isActive ? accent.text : 'text-[#696969]'}`}>
                   {project.current_phase}
                 </p>
               )}
               {project.current_status && (
-                <p className="text-[10px] text-[#5a5a5a] leading-snug truncate">{project.current_status}</p>
+                <p className="text-[10px] text-[#b0b0b0] leading-snug truncate">{project.current_status}</p>
               )}
             </div>
           </div>
@@ -225,7 +225,7 @@ export default function ProjectCard({ project, latestTask, latestDecision }: Pro
 
       {/* ── Blocker ─────────────────────────────────────────────── */}
       {project.main_blocker && riskCfg && (
-        <div className="px-4 pb-3">
+        <div className="px-4 pb-2.5">
           <div className={`flex items-start gap-2 border rounded-xl px-3 py-2 ${riskCfg.bg}`}>
             <span className={`text-[9px] shrink-0 mt-0.5 ${riskCfg.text}`}>⚠</span>
             <p className={`text-[9.5px] leading-snug line-clamp-2 ${riskCfg.text}`}>{project.main_blocker}</p>
@@ -235,10 +235,10 @@ export default function ProjectCard({ project, latestTask, latestDecision }: Pro
 
       {/* ── Task ────────────────────────────────────────────────── */}
       {latestTask && (
-        <div className="mx-4 mb-2 bg-[#090909] border border-[#161616] rounded-xl px-3 py-2 flex items-center gap-2">
+        <div className="mx-4 mb-1.5 bg-[#090909] border border-[#161616] rounded-xl px-3 py-1.5 flex items-center gap-2">
           <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${PRIORITY_DOT[latestTask.priority] ?? 'bg-[#444]'}`} />
-          <p className="text-[9.5px] text-[#686868] truncate flex-1">{latestTask.title}</p>
-          <span className="text-[7.5px] text-[#2a2a2a] bg-[#131313] border border-[#1d1d1d] px-1.5 py-0.5 rounded font-mono shrink-0">
+          <p className="text-[9.5px] text-[#a8a8a8] truncate flex-1">{latestTask.title}</p>
+          <span className="text-[7.5px] text-[#7a7a7a] bg-[#131313] border border-[#262626] px-1.5 py-0.5 rounded font-mono shrink-0">
             {latestTask.status}
           </span>
         </div>
@@ -246,17 +246,17 @@ export default function ProjectCard({ project, latestTask, latestDecision }: Pro
 
       {/* ── Decision ────────────────────────────────────────────── */}
       {latestDecision && (
-        <div className="mx-4 mb-2.5 bg-[#090909] border border-[#161616] rounded-xl px-3 py-2">
-          <p className="text-[7.5px] font-semibold text-[#282828] uppercase tracking-[0.1em] mb-0.5">Decision</p>
-          <p className="text-[9.5px] text-[#4a4a4a] line-clamp-1">{latestDecision.decision}</p>
+        <div className="mx-4 mb-2 bg-[#090909] border border-[#161616] rounded-xl px-3 py-1.5">
+          <p className="text-[7.5px] font-semibold text-[#7a7a7a] uppercase tracking-[0.1em] mb-0.5">Decision</p>
+          <p className="text-[9.5px] text-[#a0a0a0] line-clamp-1">{latestDecision.decision}</p>
         </div>
       )}
 
       {/* ── Next step ───────────────────────────────────────────── */}
       {project.next_step && (
         <div className="mx-4 mb-3">
-          <p className="text-[9px] text-[#2a2a2a] leading-relaxed">
-            <span className={`mr-1 ${accent.text} opacity-50`}>→</span>
+          <p className="text-[9px] text-[#a0a0a0] leading-relaxed">
+            <span className={`mr-1 ${accent.text} opacity-60`}>→</span>
             {project.next_step}
           </p>
         </div>
@@ -265,10 +265,10 @@ export default function ProjectCard({ project, latestTask, latestDecision }: Pro
       <div className="flex-1" />
 
       {/* ── Actions ─────────────────────────────────────────────── */}
-      <div className="px-4 pb-4 pt-2 border-t border-[#101010] flex items-center gap-2">
+      <div className="px-4 pb-3 pt-2 border-t border-[#101010] flex items-center gap-2">
         <Link
           href={`/projects/${project.id}`}
-          className="flex-1 text-center text-[10.5px] font-semibold bg-[#f59e0b]/[0.06] hover:bg-[#f59e0b]/[0.12] border border-[#f59e0b]/15 hover:border-[#f59e0b]/28 text-[#f5a623] px-3 py-1.5 rounded-xl transition-all duration-150"
+          className={`flex-1 text-center text-[10.5px] font-semibold px-3 py-1.5 rounded-xl transition-all duration-150 border ${accent.bg} ${accent.text} ${accent.border} hover:opacity-80`}
         >
           Open Workspace →
         </Link>

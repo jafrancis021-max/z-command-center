@@ -37,7 +37,7 @@ function StatusBadge({ status }: { status: string }) {
   }
   const s = cfg[status] ?? cfg.paused
   return (
-    <span className={`inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded capitalize ${s.bg} ${s.text}`}>
+    <span className={`inline-flex items-center gap-1 text-[8.5px] font-medium px-1.5 py-0.5 rounded-md capitalize ${s.bg} ${s.text}`}>
       <span className={`w-1 h-1 rounded-full shrink-0 ${s.dot}`} />
       {status}
     </span>
@@ -73,18 +73,18 @@ export default function OperationalRuntime() {
 
   if (loading) {
     return (
-      <div className="bg-[#111] border border-[#1e1e1e] rounded-xl p-5 animate-pulse">
-        <div className="h-3 w-40 bg-[#1a1a1a] rounded mb-3" />
-        <div className="h-2 w-64 bg-[#1a1a1a] rounded" />
+      <div className="bg-[#0d0d0d] border border-[#191919] rounded-2xl p-4 animate-pulse">
+        <div className="h-2.5 w-40 bg-[#181818] rounded mb-2.5" />
+        <div className="h-2 w-56 bg-[#161616] rounded" />
       </div>
     )
   }
 
   if (error) {
     return (
-      <div className="bg-[#111] border border-[#1e1e1e] rounded-xl p-5">
-        <p className="text-xs text-red-400">⚠ Operational Runtime: {error}</p>
-        <p className="text-[10px] text-[#525252] mt-1">Run migration 006_phase2c_scheduled_jobs.sql in Supabase first.</p>
+      <div className="bg-[#0d0d0d] border border-[#191919] rounded-2xl px-4 py-3">
+        <p className="text-[9.5px] text-red-400">⚠ Operational Runtime: {error}</p>
+        <p className="text-[8.5px] text-[#3a3a3a] mt-1">Run migration 006_phase2c_scheduled_jobs.sql in Supabase first.</p>
       </div>
     )
   }
@@ -96,56 +96,56 @@ export default function OperationalRuntime() {
   return (
     <section>
       {/* Header row */}
-      <div className="flex items-center justify-between mb-3">
-        <div>
-          <h2 className="text-sm font-semibold text-[#e5e5e5]">Operational Runtime</h2>
-          <p className="text-xs text-[#525252]">
-            {summary.total_active} active jobs · {summary.total_due} due now
-            {summary.failed_runs_24h > 0 && (
-              <span className="text-red-400 ml-2">· {summary.failed_runs_24h} failure(s) today</span>
-            )}
-          </p>
+      <div className="flex items-center justify-between mb-2.5">
+        <div className="flex items-center gap-2">
+          <h2 className="text-[10.5px] font-semibold text-[#909090] uppercase tracking-[0.09em]">Runtime</h2>
+          <span className="text-[8px] text-[#707070] bg-[#111] border border-[#1a1a1a] px-1.5 py-0.5 rounded-full tabular-nums">
+            {summary.total_active} active
+          </span>
+          {summary.failed_runs_24h > 0 && (
+            <span className="text-[8px] text-red-400">⚠ {summary.failed_runs_24h} failed</span>
+          )}
         </div>
         {lastRefresh && (
-          <p className="text-[10px] text-[#525252] shrink-0">
-            Updated {lastRefresh.toLocaleTimeString()}
+          <p className="text-[8px] text-[#6a6a6a] font-mono shrink-0">
+            {lastRefresh.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
           </p>
         )}
       </div>
 
       {/* Jobs table */}
-      <div className="bg-[#111] border border-[#1e1e1e] rounded-xl overflow-hidden">
-        <div className="grid grid-cols-[1fr_80px_90px_90px_80px] text-[10px] text-[#525252] uppercase tracking-wider px-4 py-2 border-b border-[#1a1a1a]">
+      <div className="bg-[#090909] border border-[#191919] rounded-2xl overflow-hidden">
+        <div className="grid grid-cols-[1fr_72px_80px_80px_60px] text-[8px] text-[#707070] uppercase tracking-[0.1em] px-3 py-2 border-b border-[#141414]">
           <span>Job</span>
           <span>Status</span>
           <span>Last run</span>
           <span>Next run</span>
-          <span>Interval</span>
+          <span>Intv</span>
         </div>
         {active_jobs.length === 0 ? (
-          <p className="text-xs text-[#525252] px-4 py-6 text-center">No jobs registered. Run the migration.</p>
+          <p className="text-[9.5px] text-[#333] px-4 py-6 text-center">No jobs registered. Run the migration.</p>
         ) : (
           active_jobs.map((job, i) => {
             const isDue = job.next_run_at <= new Date().toISOString()
             return (
               <div
                 key={job.id}
-                className={`grid grid-cols-[1fr_80px_90px_90px_80px] px-4 py-2.5 text-xs items-center ${
-                  i < active_jobs.length - 1 ? 'border-b border-[#1a1a1a]' : ''
-                } ${isDue ? 'bg-[#f59e0b]/[0.03]' : ''}`}
+                className={`grid grid-cols-[1fr_72px_80px_80px_60px] px-3 py-2 items-center ${
+                  i < active_jobs.length - 1 ? 'border-b border-[#111]' : ''
+                } ${isDue ? 'bg-[#f59e0b]/[0.02]' : ''}`}
               >
-                <div>
-                  <p className="text-[#e5e5e5] font-medium truncate">{job.name}</p>
+                <div className="min-w-0">
+                  <p className="text-[9.5px] text-[#c0c0c0] font-medium truncate leading-snug">{job.name}</p>
                   {job.description && (
-                    <p className="text-[10px] text-[#525252] truncate mt-0.5">{job.description}</p>
+                    <p className="text-[8.5px] text-[#909090] truncate mt-px">{job.description}</p>
                   )}
                 </div>
                 <StatusBadge status={job.status} />
-                <span className="text-[#737373]">{relativeTime(job.last_run_at)}</span>
-                <span className={isDue ? 'text-[#f59e0b]' : 'text-[#737373]'}>
+                <span className="text-[8.5px] text-[#909090] tabular-nums font-mono">{relativeTime(job.last_run_at)}</span>
+                <span className={`text-[8.5px] tabular-nums font-mono ${isDue ? 'text-[#f59e0b]' : 'text-[#909090]'}`}>
                   {relativeTime(job.next_run_at)}
                 </span>
-                <span className="text-[#525252]">
+                <span className="text-[8.5px] text-[#707070] font-mono">
                   {job.schedule_interval_minutes < 60
                     ? `${job.schedule_interval_minutes}m`
                     : job.schedule_interval_minutes < 1440
@@ -160,20 +160,20 @@ export default function OperationalRuntime() {
 
       {/* Recent runs */}
       {recent_runs.length > 0 && (
-        <div className="mt-3">
-          <p className="text-[10px] text-[#525252] uppercase tracking-wider mb-2">Recent Runs</p>
-          <div className="space-y-1">
-            {recent_runs.slice(0, 6).map(run => (
+        <div className="mt-2.5">
+          <p className="text-[8px] text-[#686868] uppercase tracking-[0.12em] font-semibold mb-1.5">Recent Runs</p>
+          <div className="bg-[#090909] border border-[#191919] rounded-2xl overflow-hidden">
+            {recent_runs.slice(0, 5).map((run, i) => (
               <div
                 key={run.id}
-                className="flex items-center gap-3 text-xs bg-[#111] border border-[#1a1a1a] rounded-lg px-3 py-1.5"
+                className={`flex items-center gap-2 px-3 py-1.5 ${i < Math.min(recent_runs.length, 5) - 1 ? 'border-b border-[#111]' : ''}`}
               >
                 <StatusBadge status={run.status} />
-                <span className="text-[#737373] font-mono text-[10px]">{run.job_type}</span>
-                <span className="flex-1 truncate text-[#525252]">
+                <span className="text-[#909090] font-mono text-[8.5px] shrink-0">{run.job_type}</span>
+                <span className="flex-1 truncate text-[8.5px] text-[#909090]">
                   {run.error_message ?? (run.duration_ms != null ? `${run.duration_ms}ms` : '')}
                 </span>
-                <span className="text-[10px] text-[#525252] shrink-0">
+                <span className="text-[7.5px] text-[#6a6a6a] font-mono shrink-0 tabular-nums">
                   {relativeTime(run.started_at)}
                 </span>
               </div>
@@ -184,16 +184,16 @@ export default function OperationalRuntime() {
 
       {/* Failures */}
       {failed_runs.length > 0 && (
-        <div className="mt-3 bg-red-500/5 border border-red-500/20 rounded-xl p-4">
-          <p className="text-xs font-medium text-red-400 mb-2">
+        <div className="mt-2.5 bg-red-500/[0.04] border border-red-500/15 rounded-2xl px-3 py-2.5">
+          <p className="text-[9px] font-medium text-red-400 mb-1.5">
             ⚠ {failed_runs.length} failure(s) in the last 24h
           </p>
           <div className="space-y-1">
             {failed_runs.map(run => (
-              <div key={run.id} className="text-[10px] text-[#737373] flex gap-2">
-                <span className="font-mono text-red-400/70 shrink-0">{run.job_type}</span>
+              <div key={run.id} className="text-[8.5px] text-[#555] flex gap-2">
+                <span className="font-mono text-red-400/60 shrink-0">{run.job_type}</span>
                 <span className="truncate">{run.error_message ?? 'no error message'}</span>
-                <span className="shrink-0 text-[#525252]">{relativeTime(run.started_at)}</span>
+                <span className="shrink-0 text-[#3a3a3a] font-mono tabular-nums">{relativeTime(run.started_at)}</span>
               </div>
             ))}
           </div>
