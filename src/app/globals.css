@@ -1,9 +1,9 @@
 @import "tailwindcss";
 
 :root {
-  --background: #0a0a0a;
-  --foreground: #e5e5e5;
-  --blue-op: #3B82F6;
+  --background: #F7F8FA;
+  --foreground: #111827;
+  --blue-op: #2563EB;
   --violet-op: #7C3AED;
   --green-op: #10B981;
 }
@@ -16,23 +16,23 @@ body {
 }
 
 ::-webkit-scrollbar { width: 5px; height: 5px; }
-::-webkit-scrollbar-track { background: #0d0d0d; }
-::-webkit-scrollbar-thumb { background: #252525; border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: #333; }
+::-webkit-scrollbar-track { background: #F3F4F6; }
+::-webkit-scrollbar-thumb { background: #D1D5DB; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #9CA3AF; }
 
 /* ── Prose ─────────────────────────────────────────────────────────────────── */
-.z-prose h1, .z-prose h2, .z-prose h3 { color: #f59e0b; margin: 0.75em 0 0.25em; font-weight: 600; }
+.z-prose h1, .z-prose h2, .z-prose h3 { color: #2563EB; margin: 0.75em 0 0.25em; font-weight: 600; }
 .z-prose h1 { font-size: 1.1rem; }
 .z-prose h2 { font-size: 1rem; }
 .z-prose h3 { font-size: 0.9rem; }
 .z-prose p { margin: 0.4em 0; line-height: 1.6; }
 .z-prose ul, .z-prose ol { margin: 0.4em 0; padding-left: 1.25em; }
 .z-prose li { margin: 0.2em 0; }
-.z-prose strong { color: #f5f5f5; font-weight: 600; }
-.z-prose code { background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 3px; padding: 0.1em 0.3em; font-size: 0.82em; color: #f59e0b; }
-.z-prose pre { background: #111; border: 1px solid #222; border-radius: 6px; padding: 0.75em 1em; margin: 0.5em 0; overflow-x: auto; }
-.z-prose pre code { background: none; border: none; padding: 0; color: #e5e5e5; }
-.z-prose blockquote { border-left: 3px solid #f59e0b; margin: 0.5em 0; padding-left: 0.75em; color: #a3a3a3; }
+.z-prose strong { color: #111827; font-weight: 600; }
+.z-prose code { background: #F3F4F6; border: 1px solid #E5E7EB; border-radius: 3px; padding: 0.1em 0.3em; font-size: 0.82em; color: #2563EB; }
+.z-prose pre { background: #F9FAFB; border: 1px solid #E5E7EB; border-radius: 6px; padding: 0.75em 1em; margin: 0.5em 0; overflow-x: auto; }
+.z-prose pre code { background: none; border: none; padding: 0; color: #374151; }
+.z-prose blockquote { border-left: 3px solid #2563EB; margin: 0.5em 0; padding-left: 0.75em; color: #6B7280; }
 
 /* ── Command palette entry animation ───────────────────────────────────────── */
 @keyframes cmd-enter {
@@ -57,3 +57,24 @@ body {
 
 /* ── Number count transition ────────────────────────────────────────────────── */
 .tabular-nums { font-variant-numeric: tabular-nums; }
+
+/* ── Audit entry entrance ────────────────────────────────────────────────────── */
+@keyframes audit-entry-in {
+  from { opacity: 0; transform: translateX(-4px); }
+  to   { opacity: 1; transform: translateX(0);    }
+}
+.animate-audit-entry-in { animation: audit-entry-in 0.14s ease-out forwards; }
+
+/* ── Replay step active glow ─────────────────────────────────────────────────── */
+@keyframes replay-step-active {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(37,99,235,0); }
+  50%       { box-shadow: 0 0 0 3px rgba(37,99,235,0.12); }
+}
+.animate-replay-step { animation: replay-step-active 1.6s ease-in-out infinite; }
+
+/* ── Timeline stage enter ────────────────────────────────────────────────────── */
+@keyframes timeline-enter {
+  from { opacity: 0; transform: scale(0.9) translateY(4px); }
+  to   { opacity: 1; transform: scale(1)   translateY(0);   }
+}
+.animate-timeline-enter { animation: timeline-enter 0.18s cubic-bezier(0.16, 1, 0.3, 1) forwards; }

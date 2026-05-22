@@ -6,18 +6,18 @@ import type { UnifiedTimelineEntry } from '@/app/api/unified-timeline/route'
 // ── Source config ─────────────────────────────────────────────────────────────
 
 const SOURCE_CFG = {
-  feed:         { label: 'Feed',          icon: '◐',  color: 'text-blue-400',    bg: 'bg-blue-500/[0.10]',    dot: 'bg-blue-400',    border: 'border-blue-500/25'   },
-  notification: { label: 'Notification',  icon: '◻',  color: 'text-[#f59e0b]',  bg: 'bg-[#f59e0b]/[0.08]',  dot: 'bg-[#f59e0b]',   border: 'border-[#f59e0b]/25'  },
-  approval:     { label: 'Approval',      icon: '◈',  color: 'text-violet-400',  bg: 'bg-violet-500/[0.09]',  dot: 'bg-violet-400',  border: 'border-violet-500/25'  },
-  workflow:     { label: 'Workflow',      icon: '⟳',  color: 'text-[#22c55e]',  bg: 'bg-[#22c55e]/[0.08]',  dot: 'bg-[#22c55e]',   border: 'border-[#22c55e]/20'   },
-  browser:      { label: 'Browser',       icon: '▣',  color: 'text-indigo-400',  bg: 'bg-indigo-500/[0.09]',  dot: 'bg-indigo-400',  border: 'border-indigo-500/25'  },
+  feed:         { label: 'Feed',          icon: '◐',  color: 'text-blue-600',    bg: 'bg-blue-50',    dot: 'bg-blue-500',    border: 'border-blue-200'   },
+  notification: { label: 'Notification',  icon: '◻',  color: 'text-amber-700',   bg: 'bg-amber-50',   dot: 'bg-amber-400',   border: 'border-amber-200'  },
+  approval:     { label: 'Approval',      icon: '◈',  color: 'text-violet-700',  bg: 'bg-violet-50',  dot: 'bg-violet-500',  border: 'border-violet-200' },
+  workflow:     { label: 'Workflow',      icon: '⟳',  color: 'text-green-700',   bg: 'bg-green-50',   dot: 'bg-[#10B981]',   border: 'border-green-200'  },
+  browser:      { label: 'Browser',       icon: '▣',  color: 'text-indigo-700',  bg: 'bg-indigo-50',  dot: 'bg-indigo-500',  border: 'border-indigo-200' },
 } as const
 
 const SEVERITY_TEXT: Record<string, string> = {
-  critical: 'text-red-400',
-  warning:  'text-[#f59e0b]',
-  success:  'text-[#22c55e]',
-  info:     'text-blue-400',
+  critical: 'text-red-600',
+  warning:  'text-amber-700',
+  success:  'text-green-700',
+  info:     'text-blue-600',
 }
 
 type SourceFilter = 'all' | 'feed' | 'notification' | 'approval' | 'workflow' | 'browser'
@@ -41,10 +41,6 @@ function relativeTime(iso: string): string {
   const h = Math.floor(m / 60)
   if (h < 24) return `${h}h ago`
   return `${Math.floor(h / 24)}d ago`
-}
-
-function absoluteTime(iso: string): string {
-  return new Date(iso).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })
 }
 
 function groupByDate(entries: UnifiedTimelineEntry[]): { label: string; entries: UnifiedTimelineEntry[] }[] {
@@ -82,7 +78,7 @@ function TimelineRow({
   isLast: boolean
 }) {
   const src = SOURCE_CFG[entry.source]
-  const sevColor = entry.severity ? (SEVERITY_TEXT[entry.severity] ?? 'text-[#555]') : 'text-[#555]'
+  const sevColor = entry.severity ? (SEVERITY_TEXT[entry.severity] ?? 'text-gray-400') : 'text-gray-400'
 
   return (
     <div className="flex gap-3 group">
@@ -92,7 +88,7 @@ function TimelineRow({
           <span className={src.color}>{src.icon}</span>
         </div>
         {!isLast && (
-          <div className="w-px flex-1 min-h-[24px] bg-[#1a1a1a] mt-1" />
+          <div className="w-px flex-1 min-h-[24px] bg-gray-200 mt-1" />
         )}
       </div>
 
@@ -100,11 +96,11 @@ function TimelineRow({
       <div className="flex-1 min-w-0 pb-4">
         <div className="flex items-start gap-2">
           <div className="flex-1 min-w-0">
-            <p className="text-[11px] font-medium text-[#c0c0c0] leading-snug truncate">
+            <p className="text-[11px] font-medium text-gray-700 leading-snug truncate">
               {entry.title}
             </p>
             {entry.description && (
-              <p className="text-[9.5px] text-[#444] line-clamp-2 mt-0.5 leading-snug">
+              <p className="text-[9.5px] text-gray-400 line-clamp-2 mt-0.5 leading-snug">
                 {entry.description}
               </p>
             )}
@@ -121,19 +117,19 @@ function TimelineRow({
               )}
               {/* Project badge */}
               {entry.project_name && (
-                <span className="text-[7.5px] text-[#333] bg-[#141414] border border-[#1e1e1e] px-1.5 py-0.5 rounded truncate max-w-[100px]">
+                <span className="text-[7.5px] text-gray-500 bg-gray-100 border border-gray-200 px-1.5 py-0.5 rounded truncate max-w-[100px]">
                   {entry.project_name}
                 </span>
               )}
               {/* Category */}
               {entry.category && entry.category !== 'workflow_run' && entry.category !== 'browser_run' && (
-                <span className="text-[7.5px] text-[#2a2a2a] font-mono">
+                <span className="text-[7.5px] text-gray-300 font-mono">
                   {entry.category.replace(/_/g, ' ')}
                 </span>
               )}
             </div>
           </div>
-          <span className="text-[9px] text-[#2e2e2e] font-mono shrink-0 mt-0.5 group-hover:text-[#444] transition-colors">
+          <span className="text-[9px] text-gray-300 font-mono shrink-0 mt-0.5 group-hover:text-gray-500 transition-colors">
             {relativeTime(entry.created_at)}
           </span>
         </div>
@@ -175,22 +171,22 @@ export default function TimelinePage() {
   }, [entries])
 
   return (
-    <main className="min-h-screen pt-6 pb-12 px-4 sm:px-6 max-w-[900px] mx-auto">
+    <main className="min-h-screen bg-[#F7F8FA] pt-6 pb-12 px-4 sm:px-6 max-w-[900px] mx-auto">
 
       {/* Header */}
       <div className="mb-6">
         <div className="flex items-center gap-3 mb-1.5">
-          <span className="text-[13px] text-[#3B82F6] font-mono">◐</span>
-          <h1 className="text-[13px] font-semibold text-[#d4d4d4] tracking-tight">
+          <span className="text-[13px] text-blue-600 font-mono">◐</span>
+          <h1 className="text-[13px] font-semibold text-gray-700 tracking-tight">
             Operational Timeline
           </h1>
           {!loading && (
-            <span className="text-[8.5px] text-[#333] font-mono ml-1">
+            <span className="text-[8.5px] text-gray-400 font-mono ml-1">
               {filtered.length} events
             </span>
           )}
         </div>
-        <p className="text-[10px] text-[#333] pl-[26px]">
+        <p className="text-[10px] text-gray-400 pl-[26px]">
           Unified operational history — feed, notifications, approvals, workflows, browser
         </p>
       </div>
@@ -206,14 +202,14 @@ export default function TimelinePage() {
               onClick={() => setFilter(tab.id)}
               className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[10px] font-medium transition-all whitespace-nowrap shrink-0 border ${
                 isActive
-                  ? 'bg-blue-500/[0.08] text-blue-400 border-blue-500/20'
-                  : 'text-[#444] border-transparent hover:text-[#777] hover:bg-[#141414]'
+                  ? 'bg-blue-50 text-blue-700 border-blue-200'
+                  : 'text-gray-400 border-transparent hover:text-gray-600 hover:bg-gray-100'
               }`}
             >
               <span className="font-mono">{tab.icon}</span>
               {tab.label}
               {count > 0 && (
-                <span className={`text-[8px] font-mono ${isActive ? 'text-blue-500/60' : 'text-[#333]'}`}>
+                <span className={`text-[8px] font-mono ${isActive ? 'text-blue-500' : 'text-gray-300'}`}>
                   {count}
                 </span>
               )}
@@ -225,19 +221,19 @@ export default function TimelinePage() {
       {/* Content */}
       {loading && (
         <div className="flex items-center gap-3 py-12 justify-center">
-          <span className="inline-block w-3 h-3 rounded-full border border-[#333] border-t-blue-500 animate-spin" />
-          <span className="text-[10px] text-[#333]">Loading timeline…</span>
+          <span className="inline-block w-3 h-3 rounded-full border border-gray-300 border-t-blue-500 animate-spin" />
+          <span className="text-[10px] text-gray-400">Loading timeline…</span>
         </div>
       )}
 
       {error && (
-        <div className="text-[10px] text-red-400 bg-red-500/[0.06] border border-red-500/20 rounded-xl px-4 py-3">
+        <div className="text-[10px] text-red-600 bg-red-50 border border-red-200 rounded-xl px-4 py-3">
           Failed to load timeline: {error}
         </div>
       )}
 
       {!loading && !error && filtered.length === 0 && (
-        <div className="text-[11px] text-[#333] text-center py-16">
+        <div className="text-[11px] text-gray-300 text-center py-16">
           No events
         </div>
       )}
@@ -246,11 +242,11 @@ export default function TimelinePage() {
         <div key={group.label} className="mb-6">
           {/* Date group header */}
           <div className="flex items-center gap-3 mb-3">
-            <p className="text-[8.5px] font-semibold text-[#2e2e2e] uppercase tracking-[0.12em] whitespace-nowrap">
+            <p className="text-[8.5px] font-semibold text-gray-400 uppercase tracking-[0.12em] whitespace-nowrap">
               {group.label}
             </p>
-            <div className="flex-1 border-t border-[#161616]" />
-            <span className="text-[8px] text-[#252525] font-mono whitespace-nowrap">
+            <div className="flex-1 border-t border-gray-200" />
+            <span className="text-[8px] text-gray-300 font-mono whitespace-nowrap">
               {group.entries.length}
             </span>
           </div>
@@ -268,7 +264,6 @@ export default function TimelinePage() {
         </div>
       ))}
 
-      {/* Absolute time tooltip overlay: show time on hover via title attr */}
       <style>{`
         .timeline-time { display: none; }
         .group:hover .timeline-time { display: block; }

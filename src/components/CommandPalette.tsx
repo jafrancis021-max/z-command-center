@@ -23,6 +23,7 @@ const NAV_ACTIONS = [
   { id: 'nav-inbox',        label: 'Inbox',           sub: 'Email & alerts',             href: '/inbox',             icon: '◻' },
   { id: 'nav-workflows',    label: 'Workflows',       sub: 'Automation runs',            href: '/workflows',         icon: '⟳' },
   { id: 'nav-approvals',    label: 'Approvals',       sub: 'Pending decisions',          href: '/approvals',         icon: '◈' },
+  { id: 'nav-intelligence', label: 'Intelligence',     sub: 'Pressure · stalls · insights', href: '/operational-intelligence', icon: '◈' },
   { id: 'nav-memory',       label: 'Memory',          sub: 'Operational intelligence',   href: '/memory',            icon: '◉' },
   { id: 'nav-browser',      label: 'Browser Sandbox', sub: 'Execution replay',           href: '/browser-execution', icon: '▣' },
   { id: 'nav-email-triage', label: 'Email Triage',    sub: 'AI classification',          href: '/email-triage',      icon: '·' },

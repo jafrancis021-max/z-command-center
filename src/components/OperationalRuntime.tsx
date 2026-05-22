@@ -8,11 +8,14 @@ interface JobsStatus {
   due_jobs:     ScheduledJob[]
   recent_runs:  JobRun[]
   failed_runs:  JobRun[]
+  stuck_jobs:   ScheduledJob[]
+  warnings:     string[]
   summary: {
     total_active:    number
     total_paused:    number
     total_due:       number
     failed_runs_24h: number
+    stuck_count:     number
   }
 }
 
@@ -91,7 +94,7 @@ export default function OperationalRuntime() {
 
   if (!data) return null
 
-  const { active_jobs, recent_runs, failed_runs, summary } = data
+  const { active_jobs, recent_runs, failed_runs, stuck_jobs = [], summary } = data
 
   return (
     <section>
@@ -102,6 +105,11 @@ export default function OperationalRuntime() {
           <span className="text-[8px] text-[#707070] bg-[#111] border border-[#1a1a1a] px-1.5 py-0.5 rounded-full tabular-nums">
             {summary.total_active} active
           </span>
+          {summary.stuck_count > 0 && (
+            <span className="text-[8px] text-[#f59e0b] bg-[#f59e0b]/10 border border-[#f59e0b]/20 px-1.5 py-0.5 rounded-full animate-op-pulse">
+              {summary.stuck_count} stuck
+            </span>
+          )}
           {summary.failed_runs_24h > 0 && (
             <span className="text-[8px] text-red-400">⚠ {summary.failed_runs_24h} failed</span>
           )}
@@ -126,16 +134,24 @@ export default function OperationalRuntime() {
           <p className="text-[9.5px] text-[#333] px-4 py-6 text-center">No jobs registered. Run the migration.</p>
         ) : (
           active_jobs.map((job, i) => {
-            const isDue = job.next_run_at <= new Date().toISOString()
+            const isDue   = job.next_run_at <= new Date().toISOString()
+            const isStuck = stuck_jobs.some(s => s.id === job.id)
             return (
               <div
                 key={job.id}
                 className={`grid grid-cols-[1fr_72px_80px_80px_60px] px-3 py-2 items-center ${
                   i < active_jobs.length - 1 ? 'border-b border-[#111]' : ''
-                } ${isDue ? 'bg-[#f59e0b]/[0.02]' : ''}`}
+                } ${isStuck ? 'bg-[#f59e0b]/[0.025]' : isDue ? 'bg-[#f59e0b]/[0.01]' : ''}`}
               >
                 <div className="min-w-0">
-                  <p className="text-[9.5px] text-[#c0c0c0] font-medium truncate leading-snug">{job.name}</p>
+                  <div className="flex items-center gap-1.5">
+                    <p className="text-[9.5px] text-[#c0c0c0] font-medium truncate leading-snug">{job.name}</p>
+                    {isStuck && (
+                      <span className="shrink-0 text-[7.5px] text-[#f59e0b] bg-[#f59e0b]/10 border border-[#f59e0b]/20 px-1 py-0.5 rounded leading-none">
+                        stuck
+                      </span>
+                    )}
+                  </div>
                   {job.description && (
                     <p className="text-[8.5px] text-[#909090] truncate mt-px">{job.description}</p>
                   )}

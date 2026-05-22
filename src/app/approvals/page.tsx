@@ -4,12 +4,27 @@ import { useEffect, useState } from 'react'
 import type { Approval } from '@/types'
 
 const TYPE_LABELS: Record<string, string> = {
-  email_draft: 'Email Draft',
-  task_batch: 'Task Batch',
-  handover: 'Handover',
-  prompt: 'Prompt',
-  workflow_action: 'Workflow',
+  email_draft:      'Email Draft',
+  task_batch:       'Task Batch',
+  handover:         'Handover',
+  prompt:           'Prompt',
+  workflow_action:  'Workflow',
   document_summary: 'Document Summary',
+}
+
+const TYPE_TRUST: Record<string, { why: string; impact: string; risk: 'low' | 'medium' | 'high' }> = {
+  email_draft:      { why: 'Z drafted outgoing communication that requires your review before sending.',  impact: 'Send an email on your behalf',     risk: 'medium' },
+  task_batch:       { why: 'Z queued a set of tasks for execution, requiring sign-off before running.',   impact: 'Execute multiple automated tasks', risk: 'medium' },
+  handover:         { why: 'A session handover was prepared to transfer context to the next session.',    impact: 'Persist session state and context', risk: 'low'    },
+  prompt:           { why: 'An AI-generated prompt is pending review before being used.',                 impact: 'Feed prompt into AI pipeline',     risk: 'low'    },
+  workflow_action:  { why: 'A workflow step triggered an action that must be explicitly authorized.',     impact: 'Trigger downstream workflow step',  risk: 'high'   },
+  document_summary: { why: 'Z summarized a document and requires confirmation before filing.',            impact: 'Store summary in operational memory', risk: 'low'  },
+}
+
+const RISK_STYLE: Record<string, string> = {
+  low:    'text-[#555] border-[#1e1e1e]',
+  medium: 'text-[#f59e0b] border-[#f59e0b]/20',
+  high:   'text-red-400 border-red-500/20',
 }
 
 export default function ApprovalsPage() {
@@ -67,7 +82,7 @@ export default function ApprovalsPage() {
       <header className="sticky top-0 z-10 border-b border-[#1a1a1a] bg-[#0a0a0a]/90 backdrop-blur-md px-6 h-14 flex items-center gap-3">
         <div className="flex-1">
           <h1 className="text-sm font-semibold text-[#e5e5e5]">Approvals</h1>
-          <p className="text-[10px] text-[#3a3a3a]">Nothing executes without your approval</p>
+          <p className="text-[10px] text-[#555]">Nothing executes without your approval</p>
         </div>
         <button
           onClick={handleCreateTest}
@@ -120,64 +135,88 @@ export default function ApprovalsPage() {
         )}
 
         <div className="space-y-3">
-          {approvals.map(approval => (
-            <div
-              key={approval.id}
-              className="bg-[#111] border border-[#1e1e1e] rounded-xl p-4 hover:border-[#2a2a2a] transition-colors"
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-[10px] text-[#f59e0b] bg-[#f59e0b]/10 border border-[#f59e0b]/20 px-1.5 py-0.5 rounded">
-                      {TYPE_LABELS[approval.approval_type] ?? approval.approval_type}
+          {approvals.map(approval => {
+            const trust = TYPE_TRUST[approval.approval_type]
+            const riskStyle = trust ? RISK_STYLE[trust.risk] : RISK_STYLE.low
+            return (
+              <div
+                key={approval.id}
+                className="bg-[#0e0e0e] border border-[#1e1e1e] rounded-xl overflow-hidden hover:border-[#2a2a2a] transition-colors"
+              >
+                {/* Trust context bar */}
+                {trust && filter === 'pending' && (
+                  <div className="flex items-center gap-3 px-4 py-2 bg-[#0a0a0a] border-b border-[#181818]">
+                    <span className={`text-[8.5px] font-semibold px-1.5 py-0.5 rounded border leading-none ${riskStyle}`}>
+                      {trust.risk} risk
                     </span>
-                    {approval.project_id && (
-                      <span className="text-[10px] text-[#525252]">project linked</span>
-                    )}
-                    <span className="text-[10px] text-[#525252] ml-auto">
-                      {new Date(approval.created_at).toLocaleString()}
+                    <p className="text-[8.5px] text-[#555] flex-1">{trust.why}</p>
+                    <span className="text-[8px] text-[#3a3a3a] shrink-0 border border-[#1e1e1e] px-1.5 py-0.5 rounded">
+                      {trust.impact}
                     </span>
-                  </div>
-                  <p className="text-xs font-medium text-[#e5e5e5] mb-1">{approval.title}</p>
-                  {approval.description && (
-                    <p className="text-xs text-[#737373] leading-relaxed whitespace-pre-wrap">
-                      {approval.description.slice(0, 400)}
-                      {approval.description.length > 400 ? '...' : ''}
-                    </p>
-                  )}
-                  {approval.rejection_note && (
-                    <p className="text-xs text-red-400 mt-2 border-t border-red-500/20 pt-2">
-                      Rejected: {approval.rejection_note}
-                    </p>
-                  )}
-                  {approval.approved_at && (
-                    <p className="text-[10px] text-[#22c55e] mt-1">
-                      Approved {new Date(approval.approved_at).toLocaleString()}
-                    </p>
-                  )}
-                </div>
-
-                {filter === 'pending' && (
-                  <div className="flex gap-2 shrink-0">
-                    <button
-                      onClick={() => handleAction(approval.id, 'reject')}
-                      disabled={acting === approval.id}
-                      className="text-xs border border-red-500/30 text-red-400 px-3 py-1.5 rounded-lg hover:bg-red-500/10 transition-colors disabled:opacity-50"
-                    >
-                      Reject
-                    </button>
-                    <button
-                      onClick={() => handleAction(approval.id, 'approve')}
-                      disabled={acting === approval.id}
-                      className="text-xs bg-[#f59e0b] text-black font-semibold px-3 py-1.5 rounded-lg hover:bg-[#d97706] transition-colors disabled:opacity-50"
-                    >
-                      {acting === approval.id ? '...' : 'Approve'}
-                    </button>
                   </div>
                 )}
+
+                <div className="flex items-start justify-between gap-3 p-4">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-[10px] text-[#f59e0b] bg-[#f59e0b]/10 border border-[#f59e0b]/20 px-1.5 py-0.5 rounded">
+                        {TYPE_LABELS[approval.approval_type] ?? approval.approval_type}
+                      </span>
+                      {approval.project_id && (
+                        <span className="text-[10px] text-[#525252]">project linked</span>
+                      )}
+                      <span className="text-[10px] text-[#525252] ml-auto">
+                        {new Date(approval.created_at).toLocaleString()}
+                      </span>
+                    </div>
+                    <p className="text-xs font-medium text-[#e5e5e5] mb-1">{approval.title}</p>
+                    {approval.description && (
+                      <p className="text-xs text-[#737373] leading-relaxed whitespace-pre-wrap">
+                        {approval.description.slice(0, 400)}
+                        {approval.description.length > 400 ? '...' : ''}
+                      </p>
+                    )}
+                    {approval.rejection_note && (
+                      <p className="text-xs text-red-400 mt-2 border-t border-red-500/20 pt-2">
+                        Rejected: {approval.rejection_note}
+                      </p>
+                    )}
+                    {approval.approved_at && (
+                      <p className="text-[10px] text-[#22c55e] mt-1">
+                        Approved {new Date(approval.approved_at).toLocaleString()}
+                      </p>
+                    )}
+                  </div>
+
+                  {filter === 'pending' && (
+                    <div className="flex flex-col gap-2 shrink-0 items-end">
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => handleAction(approval.id, 'reject')}
+                          disabled={acting === approval.id}
+                          className="text-xs border border-red-500/30 text-red-400 px-3 py-1.5 rounded-lg hover:bg-red-500/10 transition-colors disabled:opacity-50"
+                        >
+                          Reject
+                        </button>
+                        <button
+                          onClick={() => handleAction(approval.id, 'approve')}
+                          disabled={acting === approval.id}
+                          className="text-xs bg-[#f59e0b] text-black font-semibold px-3 py-1.5 rounded-lg hover:bg-[#d97706] transition-colors disabled:opacity-50"
+                        >
+                          {acting === approval.id ? '...' : 'Approve'}
+                        </button>
+                      </div>
+                      {trust && (
+                        <p className="text-[8px] text-[#333]">
+                          Approving will: {trust.impact.toLowerCase()}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
       </main>
     </div>

@@ -630,6 +630,49 @@ export interface BrowserExecutionStep {
   created_at:      string
 }
 
+// ── Mission 4 — Operational Memory Classification ────────────────────────────
+
+export type MemoryLayer    = 'vault' | 'cases' | 'workflow_memory' | 'think_tank' | 'research' | 'archive'
+export type AuthorityLevel = 'low' | 'medium' | 'high' | 'very_high'
+
+export interface ClassificationResult {
+  memory_layer:             MemoryLayer
+  category:                 string
+  authority_level:          AuthorityLevel
+  retrieval_priority:       number
+  assistant_default_access: boolean
+  status:                   'active'
+}
+
+export interface OperationalMemoryItem {
+  id:                       string
+  workspace_id:             string | null
+  title:                    string
+  content:                  string
+  source_type:              string
+  memory_layer:             MemoryLayer
+  category:                 string
+  authority_level:          AuthorityLevel
+  retrieval_priority:       number
+  assistant_default_access: boolean
+  linked_case_id:           string | null
+  linked_workflow_id:       string | null
+  status:                   'active' | 'archived'
+  metadata:                 Record<string, unknown>
+  created_at:               string
+  updated_at:               string
+}
+
+export interface ClassificationLog {
+  id:             string
+  item_id:        string | null
+  item_title:     string
+  assigned_layer: MemoryLayer
+  confidence:     number
+  source_type:    string
+  created_at:     string
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 
 export type ChainStatus = 'pending' | 'running' | 'waiting_approval' | 'completed' | 'failed'

@@ -38,16 +38,35 @@ export async function GET() {
       r => r.status === 'failed' && r.started_at >= since24h,
     )
 
+    // Stuck jobs: active, past due, and last_run_at is > 2× interval ago
+    const stuckJobs = activeJobs.filter(j => {
+      if (!j.last_run_at || j.next_run_at > now) return false
+      const intervalMs        = j.schedule_interval_minutes * 60_000
+      const timeSinceLastRun  = Date.now() - new Date(j.last_run_at).getTime()
+      return timeSinceLastRun > intervalMs * 2
+    })
+
+    const warnings: string[] = []
+    if (stuckJobs.length > 0) {
+      warnings.push(`${stuckJobs.length} job(s) appear stuck (overdue by >2× interval)`)
+    }
+    if (failedRuns24h.length > 0) {
+      warnings.push(`${failedRuns24h.length} failed run(s) in last 24h`)
+    }
+
     return NextResponse.json({
       active_jobs:  activeJobs,
       due_jobs:     dueJobs,
       recent_runs:  recentRuns,
       failed_runs:  failedRuns24h,
+      stuck_jobs:   stuckJobs,
+      warnings,
       summary: {
-        total_active:         activeJobs.length,
-        total_paused:         allJobs.filter(j => j.status === 'paused').length,
-        total_due:            dueJobs.length,
-        failed_runs_24h:      failedRuns24h.length,
+        total_active:    activeJobs.length,
+        total_paused:    allJobs.filter(j => j.status === 'paused').length,
+        total_due:       dueJobs.length,
+        failed_runs_24h: failedRuns24h.length,
+        stuck_count:     stuckJobs.length,
       },
     })
   } catch (err) {

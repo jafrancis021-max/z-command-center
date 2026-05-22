@@ -8,22 +8,22 @@ import type { FeedEvent, FeedSeverity } from '@/types'
 const SEVERITY_CFG: Record<FeedSeverity, {
   bar: string; dot: string; text: string; badge: string; label: string; tile: string
 }> = {
-  info:     { bar: 'bg-[#222]',     dot: 'bg-[#383838]', text: 'text-[#555]',    badge: 'bg-[#161616] text-[#444] border-[#1e1e1e]',              tile: 'bg-[#111] text-[#444]',              label: 'Info'    },
-  success:  { bar: 'bg-[#22c55e]',  dot: 'bg-[#22c55e]', text: 'text-[#22c55e]', badge: 'bg-[#22c55e]/[0.08] text-[#22c55e] border-[#22c55e]/20', tile: 'bg-[#22c55e]/[0.07] text-[#22c55e]', label: 'Success' },
-  warning:  { bar: 'bg-[#f59e0b]',  dot: 'bg-[#f59e0b]', text: 'text-[#f59e0b]', badge: 'bg-[#f59e0b]/[0.08] text-[#f59e0b] border-[#f59e0b]/20', tile: 'bg-[#f59e0b]/[0.07] text-[#f59e0b]', label: 'Warning' },
-  critical: { bar: 'bg-red-500',    dot: 'bg-red-500',   text: 'text-red-400',  badge: 'bg-red-500/[0.08] text-red-400 border-red-500/20',       tile: 'bg-red-500/[0.07] text-red-400',       label: 'Crit'    },
+  info:     { bar: 'bg-gray-200',    dot: 'bg-gray-300',    text: 'text-gray-400',  badge: 'bg-gray-100 text-gray-500 border-gray-200',              tile: 'bg-gray-100 text-gray-400',              label: 'Info'    },
+  success:  { bar: 'bg-[#10B981]',   dot: 'bg-[#10B981]',   text: 'text-green-700', badge: 'bg-green-50 text-green-700 border-green-200',            tile: 'bg-green-50 text-green-700',             label: 'Success' },
+  warning:  { bar: 'bg-amber-400',   dot: 'bg-amber-400',   text: 'text-amber-700', badge: 'bg-amber-50 text-amber-700 border-amber-200',            tile: 'bg-amber-50 text-amber-700',             label: 'Warning' },
+  critical: { bar: 'bg-red-500',     dot: 'bg-red-500',     text: 'text-red-700',   badge: 'bg-red-50 text-red-700 border-red-200',                  tile: 'bg-red-50 text-red-700',                 label: 'Crit'    },
 }
 
 const CATEGORY_CFG: Record<string, { label: string; color: string; icon: string; abbr: string }> = {
-  workflow:  { label: 'workflow',  color: 'text-violet-400',  icon: '⬡',  abbr: 'WF'   },
-  approval:  { label: 'approval',  color: 'text-[#f59e0b]',   icon: '◈',  abbr: 'AP'   },
-  memory:    { label: 'memory',    color: 'text-violet-300',  icon: '◉',  abbr: 'MEM'  },
-  blocker:   { label: 'blocker',   color: 'text-red-400',     icon: '⚠',  abbr: 'BLK'  },
-  inbox:     { label: 'inbox',     color: 'text-blue-400',    icon: '◻',  abbr: 'IN'   },
-  chain:     { label: 'chain',     color: 'text-cyan-400',    icon: '⟳',  abbr: 'CH'   },
-  execution: { label: 'exec',      color: 'text-emerald-400', icon: '▣',  abbr: 'EXEC' },
-  alert:     { label: 'alert',     color: 'text-orange-400',  icon: '◐',  abbr: 'ALT'  },
-  runtime:   { label: 'sys',       color: 'text-[#555]',      icon: '·',  abbr: 'SYS'  },
+  workflow:  { label: 'workflow',  color: 'text-violet-600',  icon: '⬡',  abbr: 'WF'   },
+  approval:  { label: 'approval',  color: 'text-amber-700',   icon: '◈',  abbr: 'AP'   },
+  memory:    { label: 'memory',    color: 'text-violet-500',  icon: '◉',  abbr: 'MEM'  },
+  blocker:   { label: 'blocker',   color: 'text-red-600',     icon: '⚠',  abbr: 'BLK'  },
+  inbox:     { label: 'inbox',     color: 'text-blue-600',    icon: '◻',  abbr: 'IN'   },
+  chain:     { label: 'chain',     color: 'text-cyan-600',    icon: '⟳',  abbr: 'CH'   },
+  execution: { label: 'exec',      color: 'text-emerald-600', icon: '▣',  abbr: 'EXEC' },
+  alert:     { label: 'alert',     color: 'text-orange-600',  icon: '◐',  abbr: 'ALT'  },
+  runtime:   { label: 'sys',       color: 'text-gray-400',    icon: '·',  abbr: 'SYS'  },
 }
 
 function eventCategory(type: string) {
@@ -75,16 +75,16 @@ function groupEvents(events: FeedEvent[]): { label: string; events: FeedEvent[] 
 
 function FeedSkeleton() {
   return (
-    <div className="bg-[#090909] border border-[#191919] rounded-2xl overflow-hidden animate-pulse">
+    <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden animate-pulse shadow-sm">
       {[88, 72, 95, 65, 80].map((w, i) => (
-        <div key={i} className="flex items-center gap-2 px-2.5 py-2 border-b border-[#0f0f0f] last:border-b-0">
-          <div className="w-[2px] h-6 bg-[#181818] rounded-full shrink-0" />
-          <div className="w-7 h-4 rounded bg-[#141414] shrink-0" />
+        <div key={i} className="flex items-center gap-2 px-2.5 py-2 border-b border-gray-100 last:border-b-0">
+          <div className="w-[2px] h-6 bg-gray-200 rounded-full shrink-0" />
+          <div className="w-7 h-4 rounded bg-gray-100 shrink-0" />
           <div className="flex-1 space-y-1">
-            <div className="h-2 bg-[#141414] rounded" style={{ width: `${w}%` }} />
-            <div className="h-1.5 w-1/5 bg-[#111] rounded" />
+            <div className="h-2 bg-gray-100 rounded" style={{ width: `${w}%` }} />
+            <div className="h-1.5 w-1/5 bg-gray-100 rounded" />
           </div>
-          <div className="w-5 h-1.5 bg-[#111] rounded shrink-0" />
+          <div className="w-5 h-1.5 bg-gray-100 rounded shrink-0" />
         </div>
       ))}
     </div>
@@ -98,7 +98,7 @@ function FeedRow({ ev }: { ev: FeedEvent }) {
   const cat = eventCategory(ev.event_type)
 
   return (
-    <div className="flex items-center gap-2 px-2.5 py-[7px] border-b border-[#0f0f0f] last:border-b-0 hover:bg-[#0c0c0c] transition-colors duration-75 group">
+    <div className="flex items-center gap-2 px-2.5 py-[7px] border-b border-gray-100 last:border-b-0 hover:bg-gray-50 transition-colors duration-75 group">
       {/* Severity bar */}
       <div className={`w-[2px] self-stretch rounded-full shrink-0 ${sev.bar}`} />
 
@@ -109,22 +109,22 @@ function FeedRow({ ev }: { ev: FeedEvent }) {
 
       {/* Content */}
       <div className="flex-1 min-w-0">
-        <p className="text-[9.5px] text-[#c0c0c0] group-hover:text-[#e0e0e0] truncate leading-snug transition-colors">
+        <p className="text-[9.5px] text-gray-600 group-hover:text-gray-800 truncate leading-snug transition-colors">
           {ev.title}
         </p>
         <div className="flex items-center gap-1 mt-px">
           <span className={`text-[7.5px] font-semibold uppercase tracking-wide ${cat.color}`}>{cat.label}</span>
           {ev.project_name && (
             <>
-              <span className="text-[#555]">·</span>
-              <span className="text-[7.5px] text-[#7a7a7a] truncate">{ev.project_name}</span>
+              <span className="text-gray-300">·</span>
+              <span className="text-[7.5px] text-gray-400 truncate">{ev.project_name}</span>
             </>
           )}
         </div>
       </div>
 
       {/* Timestamp */}
-      <span className="shrink-0 text-[7.5px] text-[#7a7a7a] tabular-nums font-mono">
+      <span className="shrink-0 text-[7.5px] text-gray-400 tabular-nums font-mono">
         {relativeTime(ev.created_at)}
       </span>
     </div>
@@ -135,8 +135,8 @@ function FeedRow({ ev }: { ev: FeedEvent }) {
 
 function TimeGroup({ label }: { label: string }) {
   return (
-    <div className="flex items-center gap-2 px-2.5 py-1 bg-[#0b0b0b] border-b border-[#0f0f0f]">
-      <span className="text-[7px] text-[#666] uppercase tracking-[0.14em] font-semibold">{label}</span>
+    <div className="flex items-center gap-2 px-2.5 py-1 bg-gray-50 border-b border-gray-100">
+      <span className="text-[7px] text-gray-400 uppercase tracking-[0.14em] font-semibold">{label}</span>
     </div>
   )
 }
@@ -170,10 +170,10 @@ export default function OperationalFeed() {
       {/* Section header with filters inline */}
       <div className="flex items-center justify-between mb-2.5">
         <div className="flex items-center gap-2">
-          <span className="w-1 h-1 rounded-full bg-[#22c55e] animate-pulse shrink-0" />
-          <h2 className="text-[10.5px] font-semibold text-[#909090] uppercase tracking-[0.09em]">Live Feed</h2>
+          <span className="w-1 h-1 rounded-full bg-[#10B981] animate-pulse shrink-0" />
+          <h2 className="text-[10.5px] font-semibold text-gray-500 uppercase tracking-[0.09em]">Live Feed</h2>
           {!loading && events.length > 0 && (
-            <span className="text-[8px] text-[#707070] bg-[#111] border border-[#1a1a1a] px-1.5 py-0.5 rounded-full tabular-nums">
+            <span className="text-[8px] text-gray-400 bg-gray-100 border border-gray-200 px-1.5 py-0.5 rounded-full tabular-nums">
               {events.length}
             </span>
           )}
@@ -184,8 +184,8 @@ export default function OperationalFeed() {
             onClick={() => setFilter('all')}
             className={`text-[8.5px] px-2 py-0.5 rounded-lg transition-colors ${
               filter === 'all'
-                ? 'bg-[#1a1a1a] text-[#aaa] border border-[#242424]'
-                : 'text-[#6a6a6a] hover:text-[#aaa]'
+                ? 'bg-gray-100 text-gray-600 border border-gray-200'
+                : 'text-gray-400 hover:text-gray-600'
             }`}
           >
             All
@@ -199,7 +199,7 @@ export default function OperationalFeed() {
                 className={`text-[8.5px] px-2 py-0.5 rounded-lg capitalize transition-colors ${
                   filter === s
                     ? `${cfg.badge} border`
-                    : 'text-[#6a6a6a] hover:text-[#aaa]'
+                    : 'text-gray-400 hover:text-gray-600'
                 }`}
               >
                 {cfg.label}
@@ -208,7 +208,7 @@ export default function OperationalFeed() {
           })}
           <button
             onClick={() => void load(true)}
-            className={`ml-1 text-[10px] text-[#3a3a3a] hover:text-[#666] transition-colors ${refreshing ? 'animate-spin' : ''}`}
+            className={`ml-1 text-[10px] text-gray-400 hover:text-gray-600 transition-colors ${refreshing ? 'animate-spin' : ''}`}
             title="Refresh"
           >
             ↺
@@ -220,12 +220,12 @@ export default function OperationalFeed() {
       {loading ? (
         <FeedSkeleton />
       ) : events.length === 0 ? (
-        <div className="text-center py-10 bg-[#090909] border border-[#191919] rounded-2xl">
-          <span className="text-[#252525] text-sm">·</span>
-          <p className="text-[9.5px] text-[#333] mt-2">No feed events yet.</p>
+        <div className="text-center py-10 bg-white border border-gray-200 rounded-2xl shadow-sm">
+          <span className="text-gray-200 text-sm">·</span>
+          <p className="text-[9.5px] text-gray-300 mt-2">No feed events yet.</p>
         </div>
       ) : showGroups ? (
-        <div className="bg-[#090909] border border-[#191919] rounded-2xl overflow-hidden">
+        <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm">
           {groups.map(group => (
             <div key={group.label}>
               <TimeGroup label={group.label} />
@@ -234,7 +234,7 @@ export default function OperationalFeed() {
           ))}
         </div>
       ) : (
-        <div className="bg-[#090909] border border-[#191919] rounded-2xl overflow-hidden">
+        <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm">
           {events.map(ev => <FeedRow key={ev.id} ev={ev} />)}
         </div>
       )}
