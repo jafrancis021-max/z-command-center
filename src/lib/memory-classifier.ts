@@ -1,4 +1,4 @@
-import type { ClassificationResult, MemoryLayer } from '@/types'
+import type { ClassificationResult, MemoryLayer, MemoryMode, TemperatureTier } from '@/types'
 
 // ── Keyword sets ──────────────────────────────────────────────────────────────
 
@@ -35,6 +35,34 @@ function countHits(text: string, keywords: string[]): number {
   return keywords.filter(kw => t.includes(kw)).length
 }
 
+// Maps memory_layer → memory_mode (default cognitive role for that layer)
+const LAYER_MODE: Record<MemoryLayer, MemoryMode> = {
+  vault:           'semantic',
+  cases:           'episodic',
+  workflow_memory: 'procedural',
+  think_tank:      'speculative',
+  research:        'semantic',
+  archive:         'episodic',
+}
+
+// source_type overrides for memory_mode
+function modeFromSource(source_type: string): MemoryMode | null {
+  if (source_type === 'workflow' || source_type === 'log') return 'procedural'
+  if (source_type === 'transcript' || source_type === 'handover') return 'episodic'
+  if (source_type === 'strategy') return 'semantic'
+  return null
+}
+
+// Derive temperature from priority + source recency signals
+function temperatureFromPriority(priority: number, source_type: string): TemperatureTier {
+  if (source_type === 'log' || source_type === 'workflow') {
+    return priority >= 7 ? 'hot' : 'warm'
+  }
+  if (priority >= 8) return 'hot'
+  if (priority >= 5) return 'warm'
+  return 'cold'
+}
+
 type LayerConfig = Pick<ClassificationResult, 'category' | 'authority_level' | 'retrieval_priority'>
 
 const LAYER_CONFIG: Record<MemoryLayer, LayerConfig> = {
@@ -55,14 +83,16 @@ export function classifyOperationalMemoryItem(
 ): ClassificationResult {
   const combined = `${title} ${content}`
 
-  // Think tank — check first. Speculative content is always isolated.
+  // Think tank — speculative content is always isolated
   if (countHits(combined, THINK_TANK_KW) >= 1 && source_type !== 'upload') {
     return {
       memory_layer:             'think_tank',
+      memory_mode:              'speculative',
       category:                 'speculative',
       authority_level:          'low',
       retrieval_priority:       2,
       assistant_default_access: false,
+      temperature_tier:         'cold',
       status:                   'active',
     }
   }
@@ -72,7 +102,15 @@ export function classifyOperationalMemoryItem(
     const caseScore  = countHits(combined, CASE_KW)
     const vaultScore = countHits(combined, VAULT_KW)
     const layer: MemoryLayer = caseScore >= 2 && caseScore > vaultScore ? 'cases' : 'vault'
-    return { memory_layer: layer, ...LAYER_CONFIG[layer], assistant_default_access: true, status: 'active' }
+    const config = LAYER_CONFIG[layer]
+    return {
+      memory_layer:             layer,
+      memory_mode:              LAYER_MODE[layer],
+      ...config,
+      assistant_default_access: true,
+      temperature_tier:         temperatureFromPriority(config.retrieval_priority, source_type),
+      status:                   'active',
+    }
   }
 
   // Score remaining layers
@@ -84,7 +122,7 @@ export function classifyOperationalMemoryItem(
   }
 
   // Source-type boosts
-  if (source_type === 'workflow' || source_type === 'log') scores.workflow_memory = (scores.workflow_memory ?? 0) + 3
+  if (source_type === 'workflow' || source_type === 'log')          scores.workflow_memory = (scores.workflow_memory ?? 0) + 3
   if (source_type === 'transcript' || source_type === 'handover') {
     scores.cases    = (scores.cases    ?? 0) + 2
     scores.research = (scores.research ?? 0) + 1
@@ -96,5 +134,15 @@ export function classifyOperationalMemoryItem(
     .sort((a, b) => b[1] - a[1])[0]
 
   const layer: MemoryLayer = winner?.[0] ?? 'research'
-  return { memory_layer: layer, ...LAYER_CONFIG[layer], assistant_default_access: true, status: 'active' }
+  const config = LAYER_CONFIG[layer]
+  const sourceMode = modeFromSource(source_type)
+
+  return {
+    memory_layer:             layer,
+    memory_mode:              sourceMode ?? LAYER_MODE[layer],
+    ...config,
+    assistant_default_access: true,
+    temperature_tier:         temperatureFromPriority(config.retrieval_priority, source_type),
+    status:                   'active',
+  }
 }

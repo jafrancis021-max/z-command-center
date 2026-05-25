@@ -1,8 +1,15 @@
+import { after } from 'next/server'
 import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { getAdmin } from '@/lib/supabase-server'
-import { getRelevantMemoryLayers } from '@/lib/retrieval-policy'
-import type { MemoryLayer } from '@/types'
+import { getCurrentWorkspaceId } from '@/lib/workspace-context'
+import { assembleAssistantContext } from '@/lib/assistant-context-assembler'
+import { getRuntimeState, suggestedBehaviorForWarnings } from '@/lib/runtime-state'
+import { recordMemoryRetrieval } from '@/lib/memory-freshness'
+import { recordRetrievalTelemetry } from '@/lib/retrieval-telemetry'
+import { getRecentReplayForChat, explainReplaySequence } from '@/lib/operational-replay'
+import { getProceduralSuggestions, type ProceduralPattern } from '@/lib/procedural-reinforcement'
+import { recordWorkflowLearningSignal } from '@/lib/workflow-learning'
 
 export const dynamic = 'force-dynamic'
 
@@ -11,10 +18,9 @@ interface Message {
   content: string
 }
 
-async function buildWorkspaceContext(uid: string, query: string, pathname?: string): Promise<string> {
+async function buildOperationalContext(uid: string): Promise<string> {
   const db = getAdmin()
 
-  // Fetch user profile
   const { data: profile } = await db
     .from('profiles')
     .select('full_name, email')
@@ -27,7 +33,7 @@ async function buildWorkspaceContext(uid: string, query: string, pathname?: stri
 
   // Active cases
   const { data: cases } = await db
-    .from('cases')
+    .from('operational_cases')
     .select('id, title, status, priority, type, description')
     .in('status', ['open', 'in_progress', 'pending_approval'])
     .order('updated_at', { ascending: false })
@@ -36,7 +42,7 @@ async function buildWorkspaceContext(uid: string, query: string, pathname?: stri
   if (cases?.length) {
     lines.push(`ACTIVE CASES (${cases.length}):`)
     cases.forEach(c => {
-      lines.push(`  [${c.status.toUpperCase()}][${c.priority}] ${c.title}${c.description ? ' — ' + c.description.slice(0, 80) : ''}`)
+      lines.push(`  [${c.status.toUpperCase()}][${c.priority}] ${c.title}${c.description ? ' — ' + (c.description as string).slice(0, 80) : ''}`)
     })
     lines.push('')
   }
@@ -64,25 +70,11 @@ async function buildWorkspaceContext(uid: string, query: string, pathname?: stri
 
   if (feed?.length) {
     lines.push('RECENT OPERATIONAL EVENTS:')
-    feed.forEach(e => lines.push(`  [${e.severity.toUpperCase()}] ${e.title}`))
+    feed.forEach(e => lines.push(`  [${(e.severity as string).toUpperCase()}] ${e.title}`))
     lines.push('')
   }
 
-  // Operational insights
-  const { data: insights } = await db
-    .from('operational_insights')
-    .select('title, severity, area, recommendation')
-    .in('severity', ['critical', 'high'])
-    .order('created_at', { ascending: false })
-    .limit(4)
-
-  if (insights?.length) {
-    lines.push('HIGH-PRIORITY INSIGHTS:')
-    insights.forEach(i => lines.push(`  [${i.severity.toUpperCase()}][${i.area}] ${i.title}: ${i.recommendation?.slice(0, 100) ?? ''}`))
-    lines.push('')
-  }
-
-  // Recent documents in vault
+  // Recent vault documents
   const { data: docs } = await db
     .from('intake_documents')
     .select('original_name, category, status, created_at')
@@ -95,29 +87,13 @@ async function buildWorkspaceContext(uid: string, query: string, pathname?: stri
     lines.push('')
   }
 
-  // Operational memory — retrieval-policy gated, never dumps think_tank by default
-  const allowedLayers: MemoryLayer[] = getRelevantMemoryLayers(query, { pathname })
-  if (allowedLayers.length > 0 && !allowedLayers.includes('think_tank')) {
-    const { data: memItems } = await db
-      .from('operational_memory_items')
-      .select('title, memory_layer, category, content')
-      .in('memory_layer', allowedLayers)
-      .eq('assistant_default_access', true)
-      .eq('status', 'active')
-      .order('retrieval_priority', { ascending: false })
-      .limit(6)
-
-    if (memItems?.length) {
-      lines.push('OPERATIONAL MEMORY:')
-      memItems.forEach(m => lines.push(`  [${m.memory_layer.toUpperCase()}][${m.category}] ${m.title}: ${(m.content as string).slice(0, 120)}`))
-      lines.push('')
-    }
-  }
-
   return lines.join('\n')
 }
 
-function buildSystemPrompt(ctx: string): string {
+const REPLAY_INTENT      = /\b(what happened|show replay|replay|why did this happen|what changed|what events|recent activity)\b/i
+const PROCEDURAL_INTENT  = /\b(how do we usually|how do you usually|usual(ly)?|standard procedure|typical(ly)?|pattern|workflow pattern|how (should|do) we handle)\b/i
+
+function buildSystemPrompt(operationalCtx: string, memoryCtx: string, runtimeCtx: string, replayCtx = '', proceduralCtx = ''): string {
   const hour = new Date().getHours()
   const greeting =
     hour < 12 ? 'morning' :
@@ -129,8 +105,8 @@ It is ${greeting}. You are always professional, concise, and genuinely helpful.
 
 You are NOT a generic AI chatbot. You are a trusted operational partner who understands this business's operations deeply.
 
-${ctx}
-
+${operationalCtx}
+${memoryCtx ? memoryCtx + '\n' : ''}${runtimeCtx ? runtimeCtx + '\n' : ''}${replayCtx ? replayCtx + '\n' : ''}${proceduralCtx ? proceduralCtx + '\n' : ''}
 YOUR ROLE:
 - Guide the member through their operational work
 - Proactively surface what needs immediate attention
@@ -173,14 +149,66 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
     }
 
-    const { messages, context } = await req.json() as { messages: Message[]; context?: { path?: string } }
+    const { messages, context } = await req.json() as { messages: Message[]; context?: { path?: string; caseId?: string; workflowId?: string } }
     if (!messages?.length) {
       return NextResponse.json({ error: 'messages required' }, { status: 400 })
     }
 
-    const lastUserMsg = [...messages].reverse().find(m => m.role === 'user')?.content ?? ''
-    const ctx = await buildWorkspaceContext(uid, lastUserMsg, context?.path)
-    const systemPrompt = buildSystemPrompt(ctx)
+    const lastUserMsg  = [...messages].reverse().find(m => m.role === 'user')?.content ?? ''
+    const workspaceId  = await getCurrentWorkspaceId()
+
+    // Detect replay intent — only fetch replay events when the user asks about history
+    const wantsReplay      = REPLAY_INTENT.test(lastUserMsg)
+    const wantsProcedural  = PROCEDURAL_INTENT.test(lastUserMsg)
+
+    // Run all context assembly in parallel
+    const [operationalCtx, memoryPayload, runtimeState, replayEvents, proceduralPatterns] = await Promise.all([
+      buildOperationalContext(uid),
+      assembleAssistantContext(lastUserMsg, workspaceId, {
+        pathname:   context?.path,
+        caseId:     context?.caseId,
+        workflowId: context?.workflowId,
+      }),
+      getRuntimeState(),
+      wantsReplay     ? getRecentReplayForChat(workspaceId, 6)                : Promise.resolve([]),
+      wantsProcedural && workspaceId ? getProceduralSuggestions(workspaceId, 5) : Promise.resolve([] as ProceduralPattern[]),
+    ])
+
+    // Build runtime context block for system prompt (only when degraded/critical)
+    let runtimeCtx = ''
+    if (runtimeState.overall_status !== 'healthy' && runtimeState.warnings.length > 0) {
+      const behavior = suggestedBehaviorForWarnings(runtimeState.warnings)
+      const lines    = [
+        'RUNTIME STATUS:',
+        `⚠ ${runtimeState.warnings.length} runtime warning(s) — status: ${runtimeState.overall_status}`,
+        ...runtimeState.warnings.map(w => `  [${w.level.toUpperCase()}] ${w.message}`),
+        '',
+        'RUNTIME BEHAVIOR RULES:',
+        ...behavior,
+      ]
+      runtimeCtx = lines.join('\n')
+    }
+
+    // Build replay context block (only when replay intent detected and events exist)
+    let replayCtx = ''
+    if (wantsReplay && replayEvents.length > 0) {
+      const lines = explainReplaySequence(replayEvents.slice().reverse(), 6)
+      replayCtx = 'RECENT ACTIVITY (replay):\n' + lines.map(l => `  ${l}`).join('\n')
+    }
+
+    // Build procedural context block (only when procedural intent detected and patterns exist)
+    let proceduralCtx = ''
+    if (wantsProcedural && proceduralPatterns.length > 0) {
+      const lines = [
+        'KNOWN PROCEDURAL PATTERNS:',
+        ...proceduralPatterns.map(p =>
+          `  • ${p.pattern_name} — ${p.pattern_summary} (confidence ${(p.confidence_score * 100).toFixed(0)}%)`,
+        ),
+      ]
+      proceduralCtx = lines.join('\n')
+    }
+
+    const systemPrompt = buildSystemPrompt(operationalCtx, memoryPayload.contextText, runtimeCtx, replayCtx, proceduralCtx)
 
     const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
     const response = await anthropic.messages.create({
@@ -193,7 +221,51 @@ export async function POST(req: NextRequest) {
     const content = response.content[0]
     if (content.type !== 'text') throw new Error('Unexpected response type')
 
-    return NextResponse.json({ message: content.text })
+    after(() => recordMemoryRetrieval(memoryPayload.items.map(i => i.id)))
+
+    if (wantsProcedural && proceduralPatterns.length > 0 && workspaceId) {
+      after(() => recordWorkflowLearningSignal({
+        workspaceId,
+        signalType:    'assistant_suggested_procedure',
+        signalSource:  'assistant',
+        signalStrength: 1.0,
+        metadata:      { patternCount: proceduralPatterns.length, intent: memoryPayload.intent },
+      }))
+    }
+
+    after(() => recordRetrievalTelemetry({
+      userMessage:          lastUserMsg,
+      workspaceId,
+      intent:               memoryPayload.intent,
+      selectedModes:        memoryPayload.selectedModes,
+      excludedModes:        memoryPayload.excludedModes,
+      speculativeBlocked:   memoryPayload.speculativeBlocked,
+      workspaceScopedCount: memoryPayload.workspaceScopedCount,
+      globalFallbackCount:  memoryPayload.globalFallbackCount,
+      globalFallbackUsed:   memoryPayload.globalFallbackUsed,
+      topMemoryScore:       memoryPayload.topMemoryScore,
+      itemIds:              memoryPayload.items.map(i => i.id),
+      itemCount:            memoryPayload.items.length,
+      temperatureDist:      memoryPayload.temperatureWeighting,
+    }))
+
+    return NextResponse.json({
+      message: content.text,
+      _debug: {
+        intent:                  memoryPayload.intent,
+        selectedModes:           memoryPayload.selectedModes,
+        speculativeBlocked:      memoryPayload.speculativeBlocked,
+        memoryItemCount:         memoryPayload.items.length,
+        // Phase 5 — workspace scope
+        workspaceId:             memoryPayload.workspaceId,
+        workspaceScopedMemoryCount: memoryPayload.workspaceScopedCount,
+        globalFallbackCount:     memoryPayload.globalFallbackCount,
+        topMemoryScore:          memoryPayload.topMemoryScore,
+        // Phase 4 — runtime
+        runtimeStatus:           runtimeState.overall_status,
+        runtimeWarnings:         runtimeState.warnings.length,
+      },
+    })
   } catch (err) {
     console.error('[api/assistant/chat]', err)
     return NextResponse.json(

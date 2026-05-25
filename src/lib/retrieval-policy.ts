@@ -1,4 +1,4 @@
-import type { MemoryLayer } from '@/types'
+import type { MemoryLayer, MemoryMode, RetrievalIntent } from '@/types'
 
 // ── Term sets ─────────────────────────────────────────────────────────────────
 
@@ -8,7 +8,7 @@ const RESEARCH_TERMS  = ['research', 'intel', 'analysis', 'market', 'trend', 're
 const VAULT_TERMS     = ['document', 'contract', 'policy', 'file', 'upload', 'vault', 'sop']
 const THINKTANK_TERMS = ['think tank', 'speculative', 'brainstorm', 'hypothesis', 'blue sky', 'idea bank']
 
-// ── Retrieval policy ──────────────────────────────────────────────────────────
+// ── Helpers ───────────────────────────────────────────────────────────────────
 
 interface RetrievalContext {
   pathname?: string
@@ -26,6 +26,8 @@ function push(arr: MemoryLayer[], layer: MemoryLayer) {
 function unshift(arr: MemoryLayer[], layer: MemoryLayer) {
   if (!arr.includes(layer)) arr.unshift(layer)
 }
+
+// ── Layer-based retrieval (path + query signal) ───────────────────────────────
 
 export function getRelevantMemoryLayers(
   query: string,
@@ -55,4 +57,62 @@ export function getRelevantMemoryLayers(
   }
 
   return layers
+}
+
+// ── Intent inference ──────────────────────────────────────────────────────────
+
+export function inferRetrievalIntent(query: string): RetrievalIntent {
+  const q = query.toLowerCase()
+
+  if (/what (happened|occurred|went wrong|was the outcome|did we|was said|was decided)/.test(q)
+    || /tell me (about|what happened)/.test(q)
+    || /history of|recap|last time/.test(q)) {
+    return 'episodic'
+  }
+
+  if (/what do (we|I) know|what('s| is) (known|the background|the context|our understanding|the situation)/.test(q)
+    || /give me (context|background|an overview|a summary)/.test(q)) {
+    return 'semantic'
+  }
+
+  if (/how do (we|I|you) (do|handle|process|run|execute|manage)|what('s| is) the (process|procedure|steps|sop|protocol)/.test(q)
+    || /walk me through|step by step|how should (we|I)/.test(q)) {
+    return 'procedural'
+  }
+
+  if (/what am I working on|what('s| is) (active|in progress|current|pending|my queue|on my plate)/.test(q)
+    || /my (tasks|cases|queue|priorities|workload)|what (should I|do I) (focus|work|do) (on|next)/.test(q)) {
+    return 'working'
+  }
+
+  if (/system (health|status|uptime|errors|performance)|runtime|infrastructure|service (status|health)|is .* (up|down|running|healthy)/.test(q)
+    || /operational status|system check|health check/.test(q)) {
+    return 'runtime'
+  }
+
+  if (/brainstorm|think tank|ideas|speculative|what if|explore|hypothesis|blue sky|let's think/.test(q)) {
+    return 'speculative'
+  }
+
+  // Default: semantic — answer "what do we know" about this topic
+  return 'semantic'
+}
+
+// ── Mode mapping ──────────────────────────────────────────────────────────────
+
+const INTENT_MODES: Record<RetrievalIntent, MemoryMode[]> = {
+  working:    ['working', 'episodic'],
+  episodic:   ['episodic', 'working'],
+  semantic:   ['semantic', 'procedural'],
+  procedural: ['procedural', 'semantic'],
+  runtime:    ['runtime', 'semantic'],
+  speculative: ['speculative'],
+}
+
+export function getMemoryModesForIntent(intent: RetrievalIntent): MemoryMode[] {
+  return INTENT_MODES[intent]
+}
+
+export function isSpeculativeIntent(intent: RetrievalIntent): boolean {
+  return intent === 'speculative'
 }

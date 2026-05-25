@@ -1,7 +1,9 @@
+import { after } from 'next/server'
 import { NextResponse } from 'next/server'
 import { getAdmin, logAction } from '@/lib/supabase-server'
 import { getCurrentWorkspaceId } from '@/lib/workspace-context'
 import { processIntake } from '@/lib/intake-processor'
+import { createOperationalEvent } from '@/lib/operational-events'
 
 export const dynamic = 'force-dynamic'
 
@@ -113,6 +115,20 @@ export async function POST(request: Request) {
     output:      { category: processed.detected_category, workflow: processed.suggested_workflow, case_id: resolvedCaseId },
     status:      'completed',
   })
+
+  after(() => createOperationalEvent({
+    workspace_id:     workspaceId,
+    event_type:       'vault.document_uploaded',
+    event_source:     'intake',
+    entity_type:      'intake_document',
+    entity_id:        docId,
+    title:            `Document uploaded: "${file.name}"`,
+    description:      `Category: ${processed.detected_category}. Type: ${processed.file_type}.`,
+    metadata:         { category: processed.detected_category, file_type: processed.file_type, case_id: resolvedCaseId },
+    importance_score: 0.7,
+    memory_mode:      'episodic',
+    temperature_tier: 'hot',
+  }))
 
   return NextResponse.json({ ...data, case_id: resolvedCaseId }, { status: 201 })
 }

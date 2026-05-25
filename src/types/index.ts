@@ -632,15 +632,20 @@ export interface BrowserExecutionStep {
 
 // ── Mission 4 — Operational Memory Classification ────────────────────────────
 
-export type MemoryLayer    = 'vault' | 'cases' | 'workflow_memory' | 'think_tank' | 'research' | 'archive'
-export type AuthorityLevel = 'low' | 'medium' | 'high' | 'very_high'
+export type MemoryLayer      = 'vault' | 'cases' | 'workflow_memory' | 'think_tank' | 'research' | 'archive'
+export type AuthorityLevel   = 'low' | 'medium' | 'high' | 'very_high'
+export type MemoryMode       = 'working' | 'episodic' | 'semantic' | 'procedural' | 'speculative' | 'runtime'
+export type TemperatureTier  = 'hot' | 'warm' | 'cold'
+export type RetrievalIntent  = 'working' | 'episodic' | 'semantic' | 'procedural' | 'runtime' | 'speculative'
 
 export interface ClassificationResult {
   memory_layer:             MemoryLayer
+  memory_mode:              MemoryMode
   category:                 string
   authority_level:          AuthorityLevel
   retrieval_priority:       number
   assistant_default_access: boolean
+  temperature_tier:         TemperatureTier
   status:                   'active'
 }
 
@@ -651,10 +656,16 @@ export interface OperationalMemoryItem {
   content:                  string
   source_type:              string
   memory_layer:             MemoryLayer
+  memory_mode:              MemoryMode
   category:                 string
   authority_level:          AuthorityLevel
   retrieval_priority:       number
   assistant_default_access: boolean
+  temperature_tier:         TemperatureTier
+  recency_score:            number
+  trust_score:              number
+  workflow_relevance_score: number
+  retrieval_decay_factor:   number
   linked_case_id:           string | null
   linked_workflow_id:       string | null
   status:                   'active' | 'archived'

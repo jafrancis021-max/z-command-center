@@ -92,13 +92,15 @@ export async function POST(request: Request) {
   }).select('id').single()
 
   if (memItem) {
-    await db.from('classification_logs').insert({
-      item_id:        (memItem as { id: string }).id,
-      item_title:     filename,
-      assigned_layer: classification.memory_layer,
-      confidence:     0.85,
-      source_type:    'manual',
-    }).throwOnError().then(() => null).catch(() => null)
+    try {
+      await db.from('classification_logs').insert({
+        item_id:        (memItem as { id: string }).id,
+        item_title:     filename,
+        assigned_layer: classification.memory_layer,
+        confidence:     0.85,
+        source_type:    'manual',
+      }).throwOnError()
+    } catch { /* non-fatal — classification log is best-effort */ }
   }
 
   await logAction({
