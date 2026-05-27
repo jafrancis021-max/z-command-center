@@ -12,7 +12,8 @@
     "hype:proofs": "npx tsx src/jobs/runHypeProofs.ts",
     "hype:plan": "npx tsx src/jobs/runAllocationPlan.ts",
     "hype:approve-plan": "npx tsx src/jobs/approveAllocationPlan.ts",
-    "hype:monitor-txs": "npx tsx src/jobs/runTxMonitor.ts"
+    "hype:monitor-txs": "npx tsx src/jobs/runTxMonitor.ts",
+    "hype:test-reconcile": "npx tsx scripts/testHypeReconcile.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.96.0",

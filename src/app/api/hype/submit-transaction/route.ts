@@ -1,5 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { submitIntentTx }           from '@/hype/db'
+import { NextRequest, NextResponse }    from 'next/server'
+import { submitIntentTx }              from '@/hype/db'
+import { reconcileHypeExecutionState } from '@/hype/reconciliation'
 
 export const dynamic = 'force-dynamic'
 
@@ -44,7 +45,18 @@ export async function POST(req: NextRequest) {
 
   try {
     const intent = await submitIntentTx(intentId!, wallet!, txHash!, chainId!)
-    return NextResponse.json({ ok: true, intent })
+
+    // Best-effort reconciliation after submit — non-fatal if RPC or DB is unavailable.
+    // Gives the frontend an up-to-date dashboard without a second round-trip.
+    let reconciliation: Awaited<ReturnType<typeof reconcileHypeExecutionState>> | null = null
+    try {
+      reconciliation = await reconcileHypeExecutionState(wallet!)
+    } catch (reconcileErr) {
+      console.warn('[api/hype/submit-transaction] post-submit reconcile failed (non-fatal):',
+        reconcileErr instanceof Error ? reconcileErr.message : String(reconcileErr))
+    }
+
+    return NextResponse.json({ ok: true, intent, reconciliation })
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
     console.error('[api/hype/submit-transaction]', message)

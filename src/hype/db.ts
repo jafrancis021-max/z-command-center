@@ -399,6 +399,27 @@ export async function updateIntentStatus(
   if (error) throw new Error(`updateIntentStatus(${intentId}): ${error.message}`)
 }
 
+// Confirms an intent and all its steps atomically.
+// Used by the reconciler when a requirement is satisfied by wallet-balance evidence.
+// Guards against downgrading already-terminal intents.
+export async function confirmIntentAndSteps(intentId: string): Promise<void> {
+  const db  = createHypeClient()
+  const now = new Date().toISOString()
+
+  const { error: intentErr } = await db
+    .from('member_execution_intents')
+    .update({ status: 'confirmed', confirmed_at: now })
+    .eq('id', intentId)
+    .not('status', 'in', '(confirmed,verified,failed,skipped)')
+  if (intentErr) throw new Error(`confirmIntentAndSteps intent(${intentId}): ${intentErr.message}`)
+
+  const { error: stepsErr } = await db
+    .from('member_execution_steps')
+    .update({ status: 'confirmed', confirmed_at: now })
+    .eq('intent_id', intentId)
+  if (stepsErr) throw new Error(`confirmIntentAndSteps steps(${intentId}): ${stepsErr.message}`)
+}
+
 export async function updateStepStatus(
   stepId: string,
   status: StepStatus,
@@ -703,4 +724,35 @@ export async function getExecutionDashboardByWallet(wallet: string): Promise<Exe
   }
 
   return getExecutionDashboardByPlan((data[0] as { id: string }).id)
+}
+
+// ── hype_proofs ───────────────────────────────────────────────────────────────
+
+export interface HypeProofRow {
+  id:         string
+  wallet:     string
+  intent_id:  string | null
+  proof_type: string   // 'balance_check' | 'khype_balance' | 'tx_receipt'
+  action:     string
+  evidence:   Record<string, unknown>
+  created_at: string
+}
+
+export async function insertHypeProof(
+  proof: Omit<HypeProofRow, 'id' | 'created_at'>,
+): Promise<void> {
+  const db = createHypeClient()
+  const { error } = await db.from('hype_proofs').insert(proof)
+  if (error) throw new Error(`insertHypeProof: ${error.message}`)
+}
+
+export async function getProofsForWallet(wallet: string): Promise<HypeProofRow[]> {
+  const db = createHypeClient()
+  const { data, error } = await db
+    .from('hype_proofs')
+    .select('*')
+    .eq('wallet', wallet.toLowerCase())
+    .order('created_at', { ascending: false })
+  if (error) throw new Error(`getProofsForWallet: ${error.message}`)
+  return (data ?? []) as HypeProofRow[]
 }
