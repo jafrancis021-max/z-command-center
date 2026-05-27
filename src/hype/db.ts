@@ -55,6 +55,7 @@ export interface IntentRow {
   action:             string
   usd_amount:         number
   hype_amount:        number | null
+  intent_type:        string   // 'signable' | 'manual' | 'health_reminder'
   requires_signature: boolean
   execution_order:    number
   status:             string
@@ -195,19 +196,33 @@ export async function approvePlan(planId: string, wallet: string): Promise<void>
     .eq('id', planId)
   if (planErr) throw new Error(`Failed to approve plan: ${planErr.message}`)
 
-  // Move all non-skipped intents: planned → awaiting_signature, approval_status → approved
-  const { error: activeErr } = await db
+  // signable intents: planned → awaiting_signature (real EVM tx, needs wallet sig)
+  const { error: signableErr } = await db
     .from('member_execution_intents')
-    .update({
-      status:          'awaiting_signature',
-      approval_status: 'approved',
-      approved_at:     now,
-    })
+    .update({ status: 'awaiting_signature', approval_status: 'approved', approved_at: now })
     .eq('plan_id', planId)
+    .eq('intent_type', 'signable')
     .neq('status', 'skipped')
-  if (activeErr) throw new Error(`Failed to advance intents: ${activeErr.message}`)
+  if (signableErr) throw new Error(`Failed to advance signable intents: ${signableErr.message}`)
 
-  // Mark skipped intents with approval_status='skipped' — they remain status='skipped'
+  // manual intents: planned → ready (L1 or off-chain action, user marks done)
+  const { error: manualErr } = await db
+    .from('member_execution_intents')
+    .update({ status: 'ready', approval_status: 'approved', approved_at: now })
+    .eq('plan_id', planId)
+    .eq('intent_type', 'manual')
+    .neq('status', 'skipped')
+  if (manualErr) throw new Error(`Failed to advance manual intents: ${manualErr.message}`)
+
+  // health_reminder intents: status stays planned — they have no terminal execution state
+  const { error: healthErr } = await db
+    .from('member_execution_intents')
+    .update({ approval_status: 'approved', approved_at: now })
+    .eq('plan_id', planId)
+    .eq('intent_type', 'health_reminder')
+  if (healthErr) throw new Error(`Failed to approve health_reminder intents: ${healthErr.message}`)
+
+  // skipped intents: mark approval_status='skipped', status unchanged
   const { error: skippedErr } = await db
     .from('member_execution_intents')
     .update({ approval_status: 'skipped' })
@@ -604,10 +619,13 @@ function buildProgress(plan: PlanRow | null, intents: IntentRow[]): ProgressSumm
     }
   }
 
+  // health_reminder intents have no terminal state — excluded from progress calculation
+  const countable = intents.filter(i => i.intent_type !== 'health_reminder')
+
   let planned = 0, awaiting = 0, ready = 0, submitted = 0
   let confirmed = 0, verified = 0, failed = 0, skipped = 0
 
-  for (const intent of intents) {
+  for (const intent of countable) {
     switch (intent.status) {
       case 'planned':            planned++;   break
       case 'awaiting_signature': awaiting++;  break
@@ -620,8 +638,8 @@ function buildProgress(plan: PlanRow | null, intents: IntentRow[]): ProgressSumm
     }
   }
 
-  const total  = intents.length
-  const active = total - skipped                            // skipped excluded from denominator
+  const total  = intents.length                            // all intents including health_reminders
+  const active = countable.length - skipped                // denominator: countable minus skipped
   const done   = confirmed + verified
   const completion_pct = active > 0 ? Math.round((done / active) * 100) : 0
 

@@ -9,6 +9,8 @@ export interface AllocationInput {
   requested_capital_usd?:  number   // original request before any cap; defaults to capital_usd
   risk_profile:            RiskProfile
   objective:               Objective
+  // When true the wallet already holds enough HYPE — skip the acquire_hype execution step.
+  has_sufficient_hype?:    boolean
 }
 
 export interface ProtocolAllocation {
@@ -181,17 +183,20 @@ export async function buildAllocationPlan(input: AllocationInput): Promise<Alloc
   const execution_steps: ExecutionStep[] = []
   let step = 1
 
-  execution_steps.push({
-    step:       step++,
-    protocol:   'hyperliquid',
-    action:     'acquire_hype',
-    amount_usd: capital_usd,
-    notes: [
-      `Buy ~${hype_equivalent.toFixed(4)} HYPE on Hyperliquid spot at ~$${hype_price_usd.toFixed(2)},`,
-      'or transfer existing HYPE balance to your HyperEVM wallet.',
-      'Price used for planning only — verify live rate before executing.',
-    ].join(' '),
-  })
+  // Omit acquire_hype when wallet already holds sufficient HYPE for this plan.
+  if (!input.has_sufficient_hype) {
+    execution_steps.push({
+      step:       step++,
+      protocol:   'hyperliquid',
+      action:     'acquire_hype',
+      amount_usd: capital_usd,
+      notes: [
+        `Buy ~${hype_equivalent.toFixed(4)} HYPE on Hyperliquid spot at ~$${hype_price_usd.toFixed(2)},`,
+        'or transfer existing HYPE balance to your HyperEVM wallet.',
+        'Price used for planning only — verify live rate before executing.',
+      ].join(' '),
+    })
+  }
 
   if (kinetiqUsd > 0) {
     const hypeAmt = kinetiqUsd / hype_price_usd

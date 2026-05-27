@@ -6,8 +6,14 @@ import type { IntentRow } from './db'
 
 // ── Verified contract registry ────────────────────────────────────────────────
 
-// Kinetiq StakingManager — verified: kinetiq.xyz/docs/contracts-and-audits
-const KINETIQ_STAKING_MANAGER = '0x393D0B87Ed38fc779FD9611144aE649BA6082109'
+// Kinetiq StakingManager — address: kinetiq.xyz/docs/contracts-and-audits
+// ABI source: code-423n4/2025-04-kinetiq (Code4rena audit, April 2025)
+//   stake() public payable — no parameters, msg.value = HYPE to stake
+//   keccak256("stake()")[0:4] = 0x3a4b66f1
+//   Receive kHYPE minted to msg.sender at current exchange rate.
+//   receive() fallback also calls stake(), but explicit selector is preferred.
+const KINETIQ_STAKING_MANAGER  = '0x393D0B87Ed38fc779FD9611144aE649BA6082109'
+const KINETIQ_STAKE_SELECTOR   = '0x3a4b66f1'  // keccak256("stake()")[0:4], verified from audit ABI
 
 // Felix WHYPE branch — verified: Felix docs / HyperEVMScan 2025-05
 // TroveNFT + TroveManager confirmed via proof scanner, but these are NOT the tx entry point.
@@ -16,19 +22,19 @@ const KINETIQ_STAKING_MANAGER = '0x393D0B87Ed38fc779FD9611144aE649BA6082109'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-export type TxPrepStatus = 'ready' | 'blocked' | 'instruction_only' | 'skipped'
+export type TxPrepStatus = 'ready' | 'blocked' | 'instruction_only' | 'health_reminder' | 'skipped'
 
 export interface PreparedTransaction {
   intent_id:          string
   protocol:           string
   action:             string
   chain:              string         // 'hyperevm' or 'hyperliquid_l1'
-  to:                 string | null  // null for instruction-only / blocked
+  to:                 string | null  // null for instruction-only / blocked / health_reminder
   value:              string | null  // hex wei; null when no native transfer
   data:               string | null  // hex calldata; null when no calldata
   description:        string
   risk_warning:       string | null
-  requires_signature: true
+  requires_signature: boolean
   status:             TxPrepStatus
   blocked_reason:     string | null  // populated when status === 'blocked'
 }
@@ -110,9 +116,8 @@ function prepareKinetiqStakeHype(intent: IntentRow): PreparedTransaction {
     )
   }
 
-  // deposit() payable — assumed from common liquid staking pattern (WETH-style receipt).
-  // keccak256("deposit()")[0..3] = 0xd0e30db0
-  // Native HYPE is sent as tx value; no token approval required.
+  // stake() — verified ABI from code-423n4/2025-04-kinetiq (Code4rena audit, April 2025)
+  // No parameters. HYPE sent as msg.value. kHYPE minted to msg.sender.
   return {
     intent_id:          intent.id,
     protocol:           intent.protocol,
@@ -120,10 +125,14 @@ function prepareKinetiqStakeHype(intent: IntentRow): PreparedTransaction {
     chain:              'hyperevm',
     to:                 KINETIQ_STAKING_MANAGER,
     value:              hypeToWei(hypeAmt),
-    data:               '0xd0e30db0',
-    description:        `Stake ${hypeAmt.toFixed(4)} HYPE via Kinetiq StakingManager (${KINETIQ_STAKING_MANAGER}) on HyperEVM. Send HYPE as transaction value. Receive kHYPE as the liquid staking receipt token. No prior token approval is required.`,
-    risk_warning:
-      'VERIFY ABI BEFORE SIGNING: function selector 0xd0e30db0 (deposit()) is assumed from the common liquid staking pattern. Confirm the exact StakingManager function signature from the official Kinetiq ABI at kinetiq.xyz/docs/contracts-and-audits before signing. kHYPE may trade below HYPE parity in stressed market conditions.',
+    data:               KINETIQ_STAKE_SELECTOR,
+    description:        `Stake ${hypeAmt.toFixed(4)} HYPE via Kinetiq StakingManager (${KINETIQ_STAKING_MANAGER}) on HyperEVM. ` +
+                        `Calls stake() — selector ${KINETIQ_STAKE_SELECTOR}, no parameters. ` +
+                        `HYPE sent as transaction value (msg.value). kHYPE minted to your wallet at the current exchange rate. ` +
+                        `No prior token approval required.`,
+    risk_warning:       'Verify the current kHYPE:HYPE exchange rate before signing — the rate appreciated from 1:1 at launch and changes over time. ' +
+                        'kHYPE may trade below HYPE parity in stressed market conditions. ' +
+                        'ABI source: code-423n4/2025-04-kinetiq (Code4rena audit).',
     requires_signature: true,
     status:             'ready',
     blocked_reason:     null,
@@ -165,12 +174,20 @@ function prepareHyperliquidHedge(intent: IntentRow): PreparedTransaction {
 }
 
 function prepareMaintainActivity(intent: IntentRow): PreparedTransaction {
-  return makeInstructionOnly(
-    intent,
-    'hyperliquid_l1',
-    'Maintain regular trading activity on Hyperliquid (perps and/or spot) to remain eligible for HYPE S2 season rewards. This is an ongoing activity requirement on Hyperliquid L1 — there is no single EVM transaction. Review the current HYPE S2 eligibility criteria and snapshot schedule on the Hyperliquid platform.',
-    null,
-  )
+  return {
+    intent_id:          intent.id,
+    protocol:           intent.protocol,
+    action:             intent.action,
+    chain:              'hyperliquid_l1',
+    to:                 null,
+    value:              null,
+    data:               null,
+    description:        'Ongoing Hyperliquid activity reminder: maintain regular perps/spot trading to remain eligible for HYPE S2 season rewards. This is a continuous eligibility behaviour — there is no single transaction to sign. Review the current HYPE S2 criteria and snapshot schedule on the Hyperliquid platform.',
+    risk_warning:       null,
+    requires_signature: false,
+    status:             'health_reminder',
+    blocked_reason:     null,
+  }
 }
 
 // ── Main export ───────────────────────────────────────────────────────────────

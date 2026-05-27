@@ -5,9 +5,15 @@ import type { AllocationPlan, ProtocolAllocation } from './planner'
 
 // ── Status enums ──────────────────────────────────────────────────────────────
 
-export type PlanStatus   = 'planned' | 'approved' | 'executing' | 'completed' | 'cancelled' | 'superseded'
+export type PlanStatus   = 'planned' | 'approved' | 'executing' | 'completed' | 'cancelled' | 'rejected' | 'superseded'
 export type IntentStatus = 'planned' | 'awaiting_signature' | 'ready' | 'submitted' | 'confirmed' | 'verified' | 'failed' | 'skipped'
 export type StepStatus   = 'planned' | 'awaiting_signature' | 'submitted' | 'confirmed' | 'verified' | 'failed'
+
+// ── Intent classification ──────────────────────────────────────────────────────
+// signable      — real EVM transaction, requires wallet signature
+// manual        — one-off L1 or off-chain user action (no EVM calldata)
+// health_reminder — ongoing eligibility behaviour, no terminal execution state
+export type IntentType = 'signable' | 'manual' | 'health_reminder'
 
 // ── DB row shapes (before PK assignment) ──────────────────────────────────────
 
@@ -33,6 +39,7 @@ export interface IntentInsert {
   action:             string
   usd_amount:         number
   hype_amount:        number | null
+  intent_type:        IntentType
   requires_signature: boolean
   execution_order:    number
   status:             IntentStatus
@@ -84,15 +91,16 @@ const ACTION_RISK_NOTES: Partial<Record<string, string>> = {
     'This is a hedge, not a directional trade. Size relative to Felix collateral value and adjust as the position changes.',
 }
 
-// On-chain actions that require a wallet signature
-const SIGNATURE_ACTIONS = new Set([
-  'acquire_hype',
-  'stake_hype',
-  'wrap_hype_to_whype',
-  'open_trove_deposit_whype_borrow_feusd',
-  'optional_loop_feusd_to_hype',
-  'open_hype_short_hedge',
-])
+// Intent type classification — drives both DB field and approval flow
+const INTENT_TYPES: Record<string, IntentType> = {
+  acquire_hype:                          'manual',        // Hyperliquid L1 spot buy — no EVM tx
+  stake_hype:                            'signable',      // HyperEVM contract call
+  wrap_hype_to_whype:                    'signable',      // HyperEVM contract call
+  open_trove_deposit_whype_borrow_feusd: 'signable',      // HyperEVM contract call
+  optional_loop_feusd_to_hype:           'signable',      // HyperEVM (blocked until DEX verified)
+  open_hype_short_hedge:                 'manual',        // Hyperliquid L1 perp — no EVM tx
+  maintain_activity_for_hype_s2:         'health_reminder', // ongoing eligibility — no terminal state
+}
 
 // Actions that are blocked at plan time — start as 'skipped'
 const BLOCKED_ACTIONS = new Set([
@@ -160,8 +168,9 @@ export function buildExecutionPipeline(plan: AllocationPlan): ExecutionPipeline 
   const steps:   Omit<StepInsert,  'intent_id'>[] = []
 
   for (const execStep of plan.execution_steps) {
-    const blocked  = BLOCKED_ACTIONS.has(execStep.action)
-    const needsSig = SIGNATURE_ACTIONS.has(execStep.action)
+    const blocked      = BLOCKED_ACTIONS.has(execStep.action)
+    const intentType   = INTENT_TYPES[execStep.action] ?? 'signable'
+    const needsSig     = intentType === 'signable'
 
     intents.push({
       wallet:             plan.wallet,
@@ -169,6 +178,7 @@ export function buildExecutionPipeline(plan: AllocationPlan): ExecutionPipeline 
       action:             execStep.action,
       usd_amount:         execStep.amount_usd,
       hype_amount:        hypeAmountFor(execStep.action, plan, kinetiqAlloc, felixAlloc),
+      intent_type:        intentType,
       requires_signature: needsSig,
       execution_order:    execStep.step,
       status:             blocked ? 'skipped' : 'planned',

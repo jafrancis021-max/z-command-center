@@ -5,6 +5,7 @@ import { getPlanWithPipeline, getLatestPlanByWallet,
 import { buildAllocationPlan, fetchHypePrice }         from '@/hype/planner'
 import { buildExecutionPipeline }                      from '@/hype/pipeline'
 import { fetchWalletSnapshot }                         from '@/hype/walletSnapshot'
+import { computeReadiness }                            from '@/hype/readiness'
 import type { RiskProfile, Objective }                 from '@/hype/planner'
 import type { PlanRow }                                from '@/hype/db'
 
@@ -78,22 +79,15 @@ export async function POST(req: NextRequest) {
     // ── 4. Wallet snapshot — source of truth for deployable capital ─────────────
     const snap = await fetchWalletSnapshot(normalizedWallet, hypePrice)
 
-    // ── 5. Pre-flight checks ────────────────────────────────────────────────────
-    if (!snap.gas_ok) {
+    // ── 5. Readiness gate — do not create plans for unfunded/insufficient wallets
+    const readiness = computeReadiness(snap, hypePrice)
+    if (readiness.status !== 'ready_for_automation') {
       return NextResponse.json(
         {
-          ok:    false,
-          error: `Insufficient gas: wallet needs at least ${snap.min_gas_hype} HYPE for gas. ` +
-                 `Current native HYPE: ${snap.native_hype.toFixed(6)}. ` +
-                 'Fund the wallet with native HYPE before creating a plan.',
+          ok:              false,
+          error:           `Wallet not ready for automation: ${readiness.status}`,
+          wallet_readiness: readiness,
         },
-        { status: 400 },
-      )
-    }
-
-    if (snap.available_usd <= 0) {
-      return NextResponse.json(
-        { ok: false, error: 'Wallet has no deployable balance (available_usd = 0). Fund the wallet first.' },
         { status: 400 },
       )
     }
@@ -111,12 +105,15 @@ export async function POST(req: NextRequest) {
     }
 
     // ── 6. Build new plan ───────────────────────────────────────────────────────
+    // Wallet is ready_for_automation — it already holds enough HYPE, so suppress
+    // the acquire_hype step (wallet doesn't need to buy more HYPE before staking).
     const newPlan = await buildAllocationPlan({
       wallet:                normalizedWallet,
       capital_usd:           capital,
       requested_capital_usd: oldPlan?.capital_usd ?? capital,
       risk_profile,
       objective,
+      has_sufficient_hype:   true,
     })
 
     newPlan.risk_notes.push(
