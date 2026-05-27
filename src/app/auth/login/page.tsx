@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { Suspense, useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@supabase/supabase-js'
@@ -12,7 +12,7 @@ function getSupabase() {
   )
 }
 
-export default function LoginPage() {
+function LoginContent() {
   const router       = useRouter()
   const searchParams = useSearchParams()
   const next         = searchParams.get('next') ?? '/dashboard'
@@ -155,5 +155,19 @@ export default function LoginPage() {
         </p>
       </div>
     </div>
+  )
+}
+
+const Spinner = () => (
+  <div className="fixed inset-0 z-50 bg-[#F7F8FA] flex items-center justify-center">
+    <div className="w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+  </div>
+)
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<Spinner />}>
+      <LoginContent />
+    </Suspense>
   )
 }

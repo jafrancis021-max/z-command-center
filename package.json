@@ -8,7 +8,11 @@
     "start": "next start",
     "typecheck": "tsc --noEmit",
     "jobs:run-once": "npx tsx scripts/jobs-worker.ts --once",
-    "jobs:worker": "npx tsx scripts/jobs-worker.ts"
+    "jobs:worker": "npx tsx scripts/jobs-worker.ts",
+    "hype:proofs": "npx tsx src/jobs/runHypeProofs.ts",
+    "hype:plan": "npx tsx src/jobs/runAllocationPlan.ts",
+    "hype:approve-plan": "npx tsx src/jobs/approveAllocationPlan.ts",
+    "hype:monitor-txs": "npx tsx src/jobs/runTxMonitor.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.96.0",
