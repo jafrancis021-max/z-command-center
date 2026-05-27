@@ -2,6 +2,8 @@
 // Run: npx tsx scripts/testHypeReconcile.ts [wallet]
 // Requires the Next.js dev server on localhost:3000
 
+export {}
+
 const BASE = 'http://localhost:3000'
 
 const wallet = process.argv[2] ?? (() => {

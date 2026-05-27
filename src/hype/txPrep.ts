@@ -6,14 +6,28 @@ import type { IntentRow } from './db'
 
 // ── Verified contract registry ────────────────────────────────────────────────
 
-// Kinetiq StakingManager — address: kinetiq.xyz/docs/contracts-and-audits
-// ABI source: code-423n4/2025-04-kinetiq (Code4rena audit, April 2025)
-//   stake() public payable — no parameters, msg.value = HYPE to stake
-//   keccak256("stake()")[0:4] = 0x3a4b66f1
-//   Receive kHYPE minted to msg.sender at current exchange rate.
-//   receive() fallback also calls stake(), but explicit selector is preferred.
-const KINETIQ_STAKING_MANAGER  = '0x393D0B87Ed38fc779FD9611144aE649BA6082109'
-const KINETIQ_STAKE_SELECTOR   = '0x3a4b66f1'  // keccak256("stake()")[0:4], verified from audit ABI
+// Kinetiq kHYPE StakingManager — triple-verified, 2026-05-27
+//
+// ADDRESS (source: kinetiq.xyz/docs/contracts-and-audits)
+//   kHYPE StakingManager: 0x393D0B87Ed38fc779FD9611144aE649BA6082109
+//   kHYPE token:          0xfD739d4e423301CE9385c1fb8850539D657C296D
+//
+// FUNCTION (source 1: github.com/code-423n4/2025-04-kinetiq/src/StakingManager.sol)
+//   function stake() public payable nonReentrant whenNotPaused whenStakingNotPaused
+//   No parameters. HYPE sent as msg.value. kHYPE minted to msg.sender at live exchange rate.
+//   receive() external payable also forwards to stake() but explicit selector is preferred.
+//
+// SELECTOR (source 2: 4byte.directory — hex_signature=0x3a4b66f1)
+//   0x3a4b66f1 → "stake()" — sole registered entry, no collisions.
+//
+// ON-CHAIN GUARDS (revert conditions the caller must be aware of):
+//   whenNotPaused           — global pause; tx reverts if contract is paused
+//   whenStakingNotPaused    — staking-specific pause; tx reverts if staking is halted
+//   nonReentrant            — standard reentrancy guard
+//   min/max thresholds      — on-chain minimum and maximum HYPE per stake call
+//   optional whitelist      — if whitelist mode is active, only approved addresses may stake
+const KINETIQ_STAKING_MANAGER = '0x393D0B87Ed38fc779FD9611144aE649BA6082109'
+const KINETIQ_STAKE_SELECTOR  = '0x3a4b66f1'  // keccak256("stake()")[0:4] — verified via 4byte.directory + audit ABI
 
 // Felix WHYPE branch — verified: Felix docs / HyperEVMScan 2025-05
 // TroveNFT + TroveManager confirmed via proof scanner, but these are NOT the tx entry point.
@@ -132,7 +146,10 @@ function prepareKinetiqStakeHype(intent: IntentRow): PreparedTransaction {
                         `No prior token approval required.`,
     risk_warning:       'Verify the current kHYPE:HYPE exchange rate before signing — the rate appreciated from 1:1 at launch and changes over time. ' +
                         'kHYPE may trade below HYPE parity in stressed market conditions. ' +
-                        'ABI source: code-423n4/2025-04-kinetiq (Code4rena audit).',
+                        'Transaction will revert if: (a) contract is paused (whenNotPaused / whenStakingNotPaused), ' +
+                        '(b) HYPE amount is outside the on-chain min/max staking thresholds, or ' +
+                        '(c) whitelist mode is active and this wallet has not been approved. ' +
+                        'ABI triple-verified: code-423n4/2025-04-kinetiq audit + kinetiq.xyz/docs/contracts-and-audits + 4byte.directory.',
     requires_signature: true,
     status:             'ready',
     blocked_reason:     null,
